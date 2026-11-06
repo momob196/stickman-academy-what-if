@@ -148,8 +148,10 @@ person uploads the MP4 once in YouTube Studio (Create > Upload, visibility Priva
 - Once the Cloud project has passed the (free) API audit, `youtube.py upload <slug> --audited --yes` uploads too.
 - vidIQ is optional (its free plan's credits): research only, never needed.
 
-**The exam on GitHub.** `.github/workflows/agents.yml` (Actions tab, Run workflow) runs the three agents on each free
-model with the same task and data, grades and times every answer with the scripts above, has the fact checker read
+**The exam on GitHub.** `.github/workflows/agents.yml` (Actions tab, Run workflow) runs the three agents on free
+models, either OpenRouter's (`:free`, when the repository has an `OPENROUTER_API_KEY` secret) or open models in the
+runner itself through Ollama (no key at all); OpenCode's free tier and GitHub Models don't answer from GitHub's
+servers. It gives each the same task and data, grades and times every answer with the scripts above, has the fact checker read
 the best script, and puts the table on the run's summary page (`scripts/agenttest.py` does the same anywhere).
 
 ## The pipeline

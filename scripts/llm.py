@@ -1,4 +1,4 @@
-"""One free chat call, no SDK: GitHub Models (free for every GitHub account, and the way to reach a model from inside
+"""One free chat call, no SDK: OpenRouter's free models, a local Ollama, GitHub Models (free for every GitHub account, and the way to reach a model from inside
 GitHub Actions, with the run's own GITHUB_TOKEN and `permissions: models: read`), or any OpenAI-compatible endpoint.
 
 As a module:  from llm import chat, catalog
@@ -9,12 +9,14 @@ From a shell:
   python <skill>/scripts/llm.py --probe          the first two models that answer
   python <skill>/scripts/llm.py --model openai/gpt-4.1-mini "prompt"
 
-Environment: GITHUB_TOKEN (or GH_TOKEN) for GitHub Models. LLM_BASE_URL and LLM_API_KEY point it at another
-OpenAI-compatible endpoint instead (a local Ollama at http://localhost:11434/v1 is free too).
+Which service, in this order: LLM_BASE_URL (+ LLM_API_KEY) for any OpenAI-compatible endpoint (a local Ollama at
+http://localhost:11434/v1 is free); OPENROUTER_API_KEY for OpenRouter, where --list and --probe keep only the free
+models (":free", price 0); otherwise GitHub Models with GITHUB_TOKEN.
 """
 import json, os, sys, time, urllib.error, urllib.request
 
 GH = 'https://models.github.ai'
+OR = 'https://openrouter.ai/api/v1'
 
 
 def _req(url, body=None, key=None, accept='application/json'):
@@ -23,8 +25,11 @@ def _req(url, body=None, key=None, accept='application/json'):
         h['Authorization'] = f'Bearer {key}'
     if url.startswith(GH):
         h['X-GitHub-Api-Version'] = '2022-11-28'
+    if url.startswith(OR):
+        h['X-Title'] = 'StickMan Academy What If'
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=h, method='POST' if body is not None else 'GET')
-    with urllib.request.urlopen(req, timeout=300) as r:
+    # a model on a CPU (Ollama on a GitHub runner) can take many minutes for one long answer
+    with urllib.request.urlopen(req, timeout=1800 if 'localhost' in url or '127.0.0.1' in url else 300) as r:
         raw, status, final, ctype = r.read(), r.status, r.geturl(), r.headers.get('content-type', '')
     try:
         return json.loads(raw)
@@ -46,10 +51,20 @@ def _token():
     return key
 
 
+def _base():
+    """Which service: an explicit OpenAI-compatible LLM_BASE_URL (a local Ollama), else OpenRouter when
+    OPENROUTER_API_KEY is set (its ":free" models cost nothing), else GitHub Models."""
+    if os.environ.get('LLM_BASE_URL'):
+        return os.environ['LLM_BASE_URL'].rstrip('/'), os.environ.get('LLM_API_KEY')
+    if os.environ.get('OPENROUTER_API_KEY'):
+        return OR, os.environ['OPENROUTER_API_KEY']
+    return None, None
+
+
 def _where():
-    base, key = os.environ.get('LLM_BASE_URL'), os.environ.get('LLM_API_KEY')
+    base, key = _base()
     if base:
-        return [(base.rstrip('/') + '/chat/completions', lambda m: m)], key
+        return [(base + '/chat/completions', lambda m: m)], key
     return ENDPOINTS, _token()
 
 
@@ -59,6 +74,14 @@ FALLBACK = ['openai/gpt-4.1-mini', 'openai/gpt-4o-mini', 'deepseek/DeepSeek-V3-0
 
 
 def catalog():
+    base, bkey = _base()
+    if base:  # OpenRouter (free models only) or a local server: both list their models at /models
+        rows = _req(base + '/models', key=bkey)
+        rows = rows.get('data', rows.get('models', [])) if isinstance(rows, dict) else rows
+        if base == OR:
+            free = lambda r: r.get('id', '').endswith(':free') or all(str((r.get('pricing') or {}).get(k, '1')) in ('0', '0.0') for k in ('prompt', 'completion'))
+            rows = [r for r in rows if free(r)]
+        return [r.get('id') or r.get('name') for r in rows if (r.get('id') or r.get('name'))]
     key = os.environ.get('GITHUB_TOKEN') or os.environ.get('GH_TOKEN')
     try:
         rows = _req(f'{GH}/catalog/models', key=key, accept='application/vnd.github+json')

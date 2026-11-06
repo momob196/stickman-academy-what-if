@@ -21,7 +21,7 @@ seeds = [s.strip() for s in opt('--seeds', 'ماذا لو,ستيك مان').spli
 region, rounds = opt('--region', 'SA'), int(opt('--rounds', 3))
 work = pathlib.Path(opt('--work', 'exam')).resolve()
 py = sys.executable
-PREFER = ['deepseek', 'gpt-4.1-mini', 'gpt-4o-mini', 'llama-4', 'mistral', 'grok', 'phi-4', 'gpt-4.1']
+PREFER = ['glm', 'deepseek', 'qwen', 'gpt-4.1-mini', 'gpt-4o-mini', 'llama-4', 'gemma', 'mistral', 'grok', 'phi-4', 'gpt-4.1']
 
 
 def pick_models():

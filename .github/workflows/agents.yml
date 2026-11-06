@@ -1,38 +1,47 @@
-# The free agents' exam on GitHub's servers. The keyword researcher, the script writer and the publisher run on free
-# models from GitHub Models (free for every GitHub account, reached with this run's own token: no key to set up),
-# with the same task and the same live YouTube data; scripts grade every answer (keycheck, scriptcheck,
-# publishcheck), send the failures back for up to three rounds, and time it. Then the best YouTube package becomes a
+# The free agents' exam on GitHub's servers. The keyword researcher, the script writer and the publisher get the same
+# task and the same live YouTube data on each free model; scripts grade every answer (keycheck, scriptcheck,
+# publishcheck), send the failures back for repair rounds, and time it. Then the best YouTube package becomes a
 # drawn thumbnail and a dry run of the free YouTube tool. The table is on the run's summary page; every answer, check
-# and the thumbnail are the run's artifact. (OpenCode's free tier doesn't answer from GitHub's servers: it is for
-# running the agents on your own machine.)
+# and the thumbnail are the run's artifact.
+#
+# Where the models run, both free:
+#   openrouter  OpenRouter's free models (":free", price 0), when the repository has an OPENROUTER_API_KEY secret
+#               (Settings > Secrets and variables > Actions > New repository secret)
+#   ollama      open models inside this runner (no key, no outside service; slower, CPU only)
+#   auto        openrouter if the secret is set, otherwise ollama
+# (OpenCode's free tier and GitHub Models don't answer from GitHub's servers on this account: both were tried.)
 name: agents
 
 on:
   workflow_dispatch:
     inputs:
+      engine:
+        description: auto, openrouter or ollama
+        default: auto
+      models:
+        description: Model ids, comma-separated, or "auto" (two free models that answer)
+        default: auto
       seeds:
         description: Seed phrases, comma-separated
         default: ماذا لو,ستيك مان
       region:
         description: YouTube region (two letters)
         default: SA
-      models:
-        description: GitHub Models ids, comma-separated, or "auto" (two free models picked from the catalog)
-        default: auto
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   exam:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 100
     env:
       SEEDS: ${{ inputs.seeds }}
       REGION: ${{ inputs.region }}
       MODELS: ${{ inputs.models }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ENGINE: ${{ inputs.engine }}
+      OR_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OLLAMA_MODELS_LIST: qwen2.5:3b,qwen2.5:7b
       PYTHONUNBUFFERED: '1'
     steps:
       - uses: actions/checkout@v4
@@ -41,12 +50,47 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Free models that answer (a few minutes at most)
-        timeout-minutes: 5
+      - name: Pick the engine
+        id: pick
+        run: |
+          e="$ENGINE"
+          if [ "$e" = auto ]; then [ -n "$OR_KEY" ] && e=openrouter || e=ollama; fi
+          if [ "$e" = openrouter ] && [ -z "$OR_KEY" ]; then echo "::error::engine openrouter needs the OPENROUTER_API_KEY secret"; exit 1; fi
+          echo "engine=$e" >> "$GITHUB_OUTPUT"
+          echo "Engine: $e" >> "$GITHUB_STEP_SUMMARY"
+
+      # Ollama: the official install script, the models cached between runs so later runs skip the download
+      - uses: actions/cache@v4
+        if: steps.pick.outputs.engine == 'ollama'
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.OLLAMA_MODELS_LIST }}
+
+      - name: Ollama
+        if: steps.pick.outputs.engine == 'ollama'
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          sudo systemctl stop ollama 2>/dev/null || true
+          OLLAMA_CONTEXT_LENGTH=12288 OLLAMA_KEEP_ALIVE=60m nohup ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:11434/api/version && break; sleep 1; done
+          for m in ${OLLAMA_MODELS_LIST//,/ }; do ollama pull "$m"; done
+          ollama list
+          echo "LLM_BASE_URL=http://localhost:11434/v1" >> "$GITHUB_ENV"
+          echo "LLM_API_KEY=ollama" >> "$GITHUB_ENV"
+          [ "$MODELS" = auto ] && echo "MODELS=$OLLAMA_MODELS_LIST" >> "$GITHUB_ENV" || true
+
+      - name: OpenRouter
+        if: steps.pick.outputs.engine == 'openrouter'
+        run: echo "OPENROUTER_API_KEY=$OR_KEY" >> "$GITHUB_ENV"
+
+      - name: Free models that answer
+        timeout-minutes: 15
         run: python scripts/llm.py --probe
 
       - name: Run the exam
-        run: python scripts/exam.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work exam --rounds 3
+        run: |
+          R=3; [ "${{ steps.pick.outputs.engine }}" = ollama ] && R=2
+          python scripts/exam.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work exam --rounds $R
 
       # the best YouTube package becomes a real thumbnail (drawn by the episode's own code, free) and a dry run of the
       # free YouTube tool shows exactly what it would write: nothing is sent to YouTube here
@@ -60,7 +104,7 @@ jobs:
       - name: Thumbnail and YouTube dry run from the best package
         if: always()
         run: |
-          BEST=$(python -c "import json,re;r=json.load(open('exam/results.json',encoding='utf-8'));p=[x for x in r.get('publish',[]) if x['score']>0];print(re.sub(r'[^a-z0-9]+','-',max(p,key=lambda x:x['score'])['model'].lower()).strip('-') if p else '')")
+          BEST=$(python -c "import json,re,os;p='exam/results.json';r=json.load(open(p,encoding='utf-8')) if os.path.exists(p) else {};q=[x for x in r.get('publish',[]) if x['score']>0];print(re.sub(r'[^a-z0-9]+','-',max(q,key=lambda x:x['score'])['model'].lower()).strip('-') if q else '')")
           if [ -z "$BEST" ]; then echo "::warning::no YouTube package scored above 0"; exit 0; fi
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-noto-core libnss3 libatk-bridge2.0-0 libgbm1 libxkbcommon0 \
