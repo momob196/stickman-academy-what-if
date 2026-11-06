@@ -7,5 +7,5 @@ export const STUDIO = {
    * A local display face for titles, as a file in public/ (your brand font, say). null uses Bricolage Grotesque
    * from Google Fonts. Example: { family: 'My Brand Font', file: 'fonts/MyBrandFont.woff2', weight: '200 700' }
    */
-  titleFont: null as null | { family: string; file: string; weight: string },
+  titleFont: { family: 'Cairo', file: 'fonts/Cairo.ttf', weight: '200 900' },
 };

@@ -5,7 +5,8 @@ Local, from the studio folder, after the sound step (voice.wav, sfx.wav, music.w
   copies the episode into the skill repository's cloud/<slug>/, commits and pushes it, starts the "render" workflow,
   waits for it and downloads the result into out/<slug>/cloud/. Needs git and the GitHub CLI (gh auth login), and
   the skill folder to be a clone of your own repository. --sync-engine first copies this studio's src/engine into
-  the repository's studio (when you changed the engine locally); without it, a different engine stops the run.
+  the repository's studio, with src/studio.config.ts and public/fonts (when you changed them locally); without
+  it, a difference in any of them stops the run.
 
 In the workflow, from the repository root:
     python scripts/cloud.py --stage <slug>
@@ -18,6 +19,7 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 args = sys.argv[1:]
 AUDIO = ['voice.wav', 'sfx.wav', 'music.wav']
+SHARED = ['src/engine', 'src/studio.config.ts', 'public/fonts']  # what the repository's studio must match locally
 
 
 def sh(*cmd, cwd=REPO, check=True, capture=True):
@@ -29,7 +31,10 @@ def sh(*cmd, cwd=REPO, check=True, capture=True):
 
 def tree_hash(d: pathlib.Path):
     h = hashlib.sha1()
-    for f in sorted(d.rglob('*')):
+    if d.is_file():
+        h.update(d.read_bytes())
+        return h.hexdigest()
+    for f in sorted(d.rglob('*')) if d.exists() else []:
         if f.is_file():
             h.update(str(f.relative_to(d)).encode())
             h.update(f.read_bytes())
@@ -73,13 +78,16 @@ def push_and_render(slug):
     missing = [f for f in AUDIO if not (pub / f).exists()]
     if missing:
         raise SystemExit(f'missing {", ".join(missing)} in {pub}: run voice.py and sfx.py first')
-    # the episode is drawn with this studio's engine: the repository must carry the same one
-    local_engine, repo_engine = studio / 'src' / 'engine', REPO / 'studio' / 'src' / 'engine'
-    if tree_hash(local_engine) != tree_hash(repo_engine):
+    # the episode is drawn with this studio's engine, settings (the title face) and fonts: the repository must carry
+    # the same ones, or the cloud render looks different (a missing titleFont falls back to another face)
+    differ = [s for s in SHARED if tree_hash(studio / s) != tree_hash(REPO / 'studio' / s)]
+    if differ:
         if '--sync-engine' not in args:
-            raise SystemExit('this studio\'s src/engine differs from the repository\'s: add --sync-engine to copy it over (and commit it)')
-        shutil.copytree(local_engine, repo_engine, dirs_exist_ok=True)
-        print('engine synced into the repository')
+            raise SystemExit(f'this studio differs from the repository in {", ".join(differ)}: add --sync-engine to copy them over (and commit them)')
+        for s in differ:
+            src, dst = studio / s, REPO / 'studio' / s
+            shutil.copytree(src, dst, dirs_exist_ok=True) if src.is_dir() else shutil.copy2(src, dst)
+        print(f'synced into the repository: {", ".join(differ)}')
     dst = REPO / 'cloud' / slug
     shutil.rmtree(dst, ignore_errors=True)
     shutil.copytree(ep, dst / 'src')
@@ -89,8 +97,9 @@ def push_and_render(slug):
     costs = studio / 'out' / slug / 'costs.json'
     if costs.exists():
         shutil.copy2(costs, dst / 'costs.json')
-    sh('git', 'add', 'cloud/' + slug, 'studio/src/engine')
-    if sh('git', 'status', '--porcelain', 'cloud/' + slug, 'studio/src/engine', check=False):
+    paths = ['cloud/' + slug] + ['studio/' + s for s in SHARED]
+    sh('git', 'add', *paths)
+    if sh('git', 'status', '--porcelain', *paths, check=False):
         sh('git', 'commit', '-m', f'cloud: render {slug}')
     branch = sh('git', 'rev-parse', '--abbrev-ref', 'HEAD')
     print(f'pushing {branch} ...')
