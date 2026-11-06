@@ -76,6 +76,7 @@ log, a folder of stills or a page of numbers. Install them once (step "Setup"), 
 
 | Agent | Model | Use it for | Steps |
 |---|---|---|---|
+| `wi-producer` | `opencode/glm-5.3-flash-free` | production director: delegates research, script, fact-check, shots, storyboard, motion, sound and render to the specialist agents; runs the full pipeline and reports verified outputs | all |
 | `wi-runner` | haiku | every script run (plan, castcheck, stills, board, sfx, mixcheck, motiongrid, master, framesheet): it calls `run.py`, keeps logs out of the conversation, retries a browser that misses its launch | 2-8 |
 | `wi-fact-check` | sonnet | the science: claim vs source, the citation character by character, numbers on screen | 1, 8 |
 | `wi-board-check` | sonnet | the stills or the rendered frames against the checklist, characters first, the two-figure rule | 5, 8 |
