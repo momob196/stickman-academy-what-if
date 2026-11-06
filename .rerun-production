@@ -1,1 +1,1 @@
-Retry Pharaoh episode on FreeModel after context-budget fixes. Backend: freemodel. Episode: pharaoh-intimacy. ElevenLabs disabled.
+Run Pharaoh episode production using Hugging Face Inference Providers (openai/gpt-oss-120b:fastest). Topic: أسرار الحياة الحميمة في مصر القديمة: ماذا تكشف البرديات؟ Slug: pharaoh-intimacy. Duration: short. ElevenLabs disabled.
