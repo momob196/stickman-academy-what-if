@@ -13,14 +13,6 @@ on:
         required: true
         default: pharaoh-intimacy
         type: string
-      backend:
-        description: Model runtime
-        required: true
-        default: openrouter
-        type: choice
-        options:
-          - openrouter
-          - ollama
       duration:
         description: Episode length
         required: true
@@ -45,12 +37,10 @@ jobs:
     env:
       TOPIC: ${{ inputs.topic }}
       SLUG: ${{ inputs.slug }}
-      BACKEND: ${{ inputs.backend }}
       DURATION: ${{ inputs.duration }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       ELEVENLABS_API_KEY: ${{ inputs.allow_elevenlabs && secrets.ELEVENLABS_API_KEY || '' }}
-      OLLAMA_HOST: http://127.0.0.1:11434
 
     steps:
       - uses: actions/checkout@v4
@@ -110,27 +100,12 @@ jobs:
         run: npm install --global opencode-ai@latest
 
       - name: Configure OpenRouter GLM-5.3
-        if: inputs.backend == 'openrouter'
         run: |
           test -n "$OPENROUTER_API_KEY" || { echo "::error::Add OPENROUTER_API_KEY in repository Actions secrets"; exit 1; }
           echo "DIRECTOR_MODEL=openrouter/z-ai/glm-5.3" >> "$GITHUB_ENV"
           echo "WORKER_MODEL=openrouter/z-ai/glm-5.3-flash" >> "$GITHUB_ENV"
 
-      - name: Start Ollama and pull local model
-        if: inputs.backend == 'ollama'
-        run: |
-          curl -fsSL https://ollama.com/install.sh | sh
-          OLLAMA_KEEP_ALIVE=30m ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
-          for i in $(seq 1 60); do
-            curl -sf http://127.0.0.1:11434/api/version && break
-            sleep 2
-          done
-          curl -sf http://127.0.0.1:11434/api/version || { tail -60 "$RUNNER_TEMP/ollama.log"; exit 1; }
-          ollama pull qwen3:8b
-          echo "DIRECTOR_MODEL=ollama/qwen3:8b" >> "$GITHUB_ENV"
-          echo "WORKER_MODEL=ollama/qwen3:8b" >> "$GITHUB_ENV"
-
-      - name: Bind specialist agents to the selected backend
+      - name: Bind specialist agents to GLM-5.3
         run: |
           python - <<'PY'
           import os, re
