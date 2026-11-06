@@ -167,20 +167,20 @@ jobs:
 
       - name: Run the GLM production director
         run: |
-          opencode run --standalone --agent wi-producer --model "$DIRECTOR_MODEL" --auto "$(cat production-prompt.txt)" 2>&1 | tee production.log
+          opencode run --standalone --agent wi-producer --model "$DIRECTOR_MODEL" "$(cat production-prompt.txt)" 2>&1 | tee production.log
 
       - name: Verify generated episode
         if: always()
         run: |
-          if [ -d "studio/src/episodes/$SLUG" ]; then
-            cd studio
-            python ../scripts/scriptcheck.py "$SLUG" || true
-            npx tsc --noEmit || true
-            node ../scripts/castcheck.mjs "$SLUG" || true
-            python ../scripts/framesheet.py "$SLUG" || true
-          else
-            echo "::warning::The producer did not create studio/src/episodes/$SLUG"
-          fi
+          test -d "studio/src/episodes/$SLUG" || { echo "::error::Producer did not create studio/src/episodes/$SLUG"; exit 1; }
+          test -s "studio/src/episodes/$SLUG/episode.json" || { echo "::error::episode.json is missing or empty"; exit 1; }
+          cd studio
+          python ../scripts/scriptcheck.py "$SLUG"
+          npx tsc --noEmit
+          node ../scripts/castcheck.mjs "$SLUG"
+          python ../scripts/stills.mjs "$SLUG"
+          python ../scripts/board.py "$SLUG"
+          python ../scripts/framesheet.py "$SLUG"
 
       - uses: actions/upload-artifact@v4
         if: always()
