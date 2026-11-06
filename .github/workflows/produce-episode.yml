@@ -28,6 +28,7 @@ on:
         type: choice
         options:
           - codecraft
+          - freemodel
           - radoxai
           - ollama-cloud
           - openrouter
@@ -50,6 +51,7 @@ jobs:
       DURATION: ${{ inputs.duration }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       CODECRAFT_API_KEY: ${{ secrets.CODECRAFT_API_KEY }}
+      FREEMODEL_API_KEY: ${{ secrets.FREEMODEL_API_KEY }}
       RADOXAI_API_KEY: ${{ secrets.RADOXAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
@@ -141,6 +143,35 @@ jobs:
           JSON
           echo "DIRECTOR_MODEL=codecraft/claude-opus-5.5" >> "$GITHUB_ENV"
           echo "WORKER_MODEL=codecraft/claude-opus-5.5" >> "$GITHUB_ENV"
+
+      - name: Configure FreeModel API Claude Opus 5.5
+        if: inputs.backend == 'freemodel'
+        run: |
+          test -n "$FREEMODEL_API_KEY" || { echo "::error::Add FREEMODEL_API_KEY in repository Settings > Secrets and variables > Actions"; exit 1; }
+          mkdir -p .opencode
+          cat > .opencode/opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "freemodel": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "FreeModel API",
+                "options": {
+                  "baseURL": "https://freemodel.in/v1",
+                  "apiKey": "{env:FREEMODEL_API_KEY}"
+                },
+                "models": {
+                  "claude-opus-5-5": {
+                    "name": "Claude Opus 5.5",
+                    "limit": { "context": 1000000, "output": 128000 }
+                  }
+                }
+              }
+            }
+          }
+          JSON
+          echo "DIRECTOR_MODEL=freemodel/claude-opus-5-5" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=freemodel/claude-opus-5-5" >> "$GITHUB_ENV"
 
       - name: Configure RadoxAI Claude Opus 5.5
         if: inputs.backend == 'radoxai'
