@@ -1,0 +1,127 @@
+{
+  "id": "BlinkSwap",
+  "slug": "blink-swap",
+  "topic": "ماذا لو بدّلت كل رَمشة من عينيك مكانَ الأشياء؟",
+  "title": ["ماذا لو كانت", "كل رَمشة تُبادِل؟"],
+  "accent": "رَمشة",
+  "power": {
+    "word": "رَمشة.",
+    "rule": "كل رَمشة من عينيك تُبادِل مكان الأشياء حولك",
+    "look": "قوسان من الضوء السيماوي حول ما يتبادل، وصورة هائم مزدوجة لحظة التبادل، وميض قصير"
+  },
+  "cast": ["pipHood", "mo", "sis", "mom"],
+  "script": [
+    { "beat": "1 cold open, demo 1 (small and selfish)", "text": "رَمشة. كوكيز أختك الصغيرة صارت في يدك." },
+    { "beat": "1 cold open, demo 2 (useful)", "text": "رَمشة. أنت في المقعد المريح. مو واقف." },
+    { "beat": "1 cold open, demo 3 (a little uncanny)", "text": "رَمشة. أنت في مطبخ ماما. ماما في مكانك." },
+    { "beat": "2 the premise (title card)", "text": "ماذا لو كانت كل رَمشة تُبادِل الأشياء؟" },
+    { "beat": "3 the fun part", "text": "أسهل قوة على الإطلاق." },
+    { "beat": "4 the turn: the cost, one real fact", "text": "لكن لا تستطيع منع الرمش. رمشاتك من خمسة عشر إلى عشرين مرة كل دقيقة، والجفنان مغلقان عُشر ساعة يقظتك. هذا حقيقي." },
+    { "beat": "5-7 folded into a question", "text": "فما الذي ستُبادله رَمشتك القادمة؟" }
+  ],
+  "science": [
+    {
+      "claim": "يرمش البالغ اللاإراديًا من 15 إلى 20 مرة في الدقيقة.",
+      "working": "المدى المتفق عليه في قياس الرمش الالتيقاتي للبالغ اليقظ: نحو 15-20 رَمشة/دقيقة (ينخفض أثناء التركيز، ويرتفع عند الملل)؛ هذا هو المدى الذي تعتمده المقاسات المخبرية مثل دراسة Bentivoglio وزملائه (معدل median نحو 16/د).",
+      "source": "Bentivoglio et al. 1997, Electroencephalography & Clinical Neurophysiology (spontaneous blink-rate statistics in humans)"
+    },
+    {
+      "claim": "الجفنان مغلقان لنحو 10% من ساعات اليقظة بسبب الرمش الالتيقاتي.",
+      "working": "الرمشة النمطية تستغرق 0.1-0.4 ثانية؛ عند 15-20 رمشة/د: (15→20 × 0.1→0.4 s) ÷ 60 s ≈ 2.5-13% من زمن اليقظة، ومركز الأدبيات forehead نحو 10%. هذا يجعل إجمالي الإغلاق عشر ساعة ياي ايقظة تقريبًا.",
+      "source": "Tsubota & Nakamori 1993 / ophthalmology reviews of spontaneous blinking (~10% of waking hours eyes closed)"
+    }
+  ],
+  "shots": [
+    { "id": "S1", "size": "macro insert, high angle", "set": "kitchen (counter)", "key": 12, "note": "بسكويت أختك يودّع الصحن ويقفز إلى يد بِب داخل هالتين ضوئيتين متبادلتين" },
+    { "id": "S2", "size": "medium", "set": "kitchen", "key": 20, "note": "بِب في المقعد يفتح يوفه على البسكويت، يقف خلفه الضوء الأصفر، وأختك تنقلب خلف الطاولة" },
+    { "id": "S3", "size": "close-up", "set": "kitchen", "key": 12, "note": "وجه أختك: عيناها نطقتوان، إصبعها يلوّح نحو اليد" },
+    { "id": "S4", "size": "wide", "set": "study", "key": 14, "note": "غرفة الدراسة: بِب وكرسيه المريح يتبادلان المكدين وسط ومضة، الكتاب يطير" },
+    { "id": "S5", "size": "medium", "set": "study", "key": 22, "note": "بِب داخل الكرسي مبسوط، مو واقف مكانه بشعرة مرفوعة" },
+    { "id": "S6", "size": "close-up", "set": "study", "key": 12, "note": "وجه مو: دبوسان وعيناه تقومان بهويّة مستفهمة" },
+    { "id": "S7", "size": "wide", "set": "kitchen", "key": 16, "note": "المطبخ عند الغروب: ماما وبِب في وسط تبادل هائم بين مريلة ماما وثوب بِب" },
+    { "id": "S8", "size": "medium", "set": "kitchen", "key": 6, "note": "بِب داخل مريلة ماما ويداه ترغدان القدر، كتفاه وارعة" },
+    { "id": "S9", "size": "close-up", "set": "kitchen", "key": 12, "note": "وجه ماما: عيناها واسعتان، بسكويت متى انغرس على أطرافها" },
+    { "id": "S10", "size": "title, wide", "set": "rooftop", "key": 38, "note": "السطران عنوان معا فوق مدينة الغروب، بِب على الحافة يفرك عينيه" },
+    { "id": "S11", "size": "medium, low angle", "set": "rooftop", "key": 18, "note": "بِب مسند إلى السقوط، ذراعاه في تدبير النعاس، ابتسامته واثقة" },
+    { "id": "S12", "size": "medium", "set": "study (desk, evening)", "key": 20, "note": "بِبちに يداه تفرضان جفنهما من الأوفر، وعروق جبهته مشدودة" },
+    { "id": "S13", "size": "schematic", "set": "schematic", "key": 24, "note": "عين على شبكة داكنة، عدّاد الرمش يتجه من 15 إلى 20 مع نبض كل رَمش" },
+    { "id": "S14", "size": "macro insert (digits)", "set": "schematic", "key": 20, "note": "أرقام الـ 15-20 مكبرة في العبارة، كل رقم يقفز عند رمشة" },
+    { "id": "S15", "size": "schematic", "set": "schematic", "key": 30, "note": "التوقيت الإغلاق ترفع عمود 10% والي كلس يصب وتخشع الجفنان" },
+    { "id": "S16", "size": "close-up", "set": "study (desk, evening)", "key": 14, "note": "بِب يحفز عينيه من باتيهيهما، تحتهما علامات الإработки الواضحة" },
+    { "id": "S17", "size": "extreme close-up", "set": "study (desk, evening)", "key": 10, "note": "عينه تكبر، الحدقة تتفتح فجأة على الضوء" },
+    { "id": "S18", "size": "wide, low angle", "set": "rooftop", "key": 30, "note": "المدينة كلها في وسط تبادل متلاطق: مصباح في السماء، سيارة على البيت، بِب يصف عينه" },
+    { "id": "S19", "size": "close-up", "set": "rooftop", "key": 18, "note": "وجه بِب يخت نصفه على الضوء، جفناه يبدأان بالخبس، الخلفية ترتجف" }
+  ],
+  "edit": [
+    { "shot": "S1", "at": "رَمشة", "look": "swap" },
+    { "shot": "S2", "at": "كوكيز" },
+    { "shot": "S3", "at": "صارت" },
+    { "shot": "S4", "at": "رَمشة", "look": "swap" },
+    { "shot": "S5", "at": "المقعد" },
+    { "shot": "S6", "at": "واقف" },
+    { "shot": "S7", "at": "رَمشة", "look": "swap" },
+    { "shot": "S8", "at": "مطبخ" },
+    { "shot": "S9", "at": "ماما" },
+    { "shot": "S10", "at": "ماذا" },
+    { "shot": "S11", "at": "أسهل" },
+    { "shot": "S12", "at": "لكن" },
+    { "shot": "S13", "at": "الرمش" },
+    { "shot": "S14", "at": "خمسة" },
+    { "shot": "S15", "at": "مغلقان" },
+    { "shot": "S16", "at": "يقظتك" },
+    { "shot": "S17", "at": "هذا" },
+    { "shot": "S18", "at": "فما", "look": "swap" },
+    { "shot": "S19", "at": "رَمشتك" }
+  ],
+  "tail": 1.0,
+  "fx": [
+    { "at": "S1+2", "kind": "flash", "color": "#DDF2FF", "o": 0.4 },
+    { "at": "S4+2", "kind": "flash", "color": "#DDF2FF", "o": 0.4 },
+    { "at": "S7+2", "kind": "flash", "color": "#DDF2FF", "o": 0.4 },
+    { "at": "S10", "kind": "flash", "color": "#FFF3DC" },
+    { "at": "S18+2", "kind": "flash", "color": "#FF3344", "o": 0.35 },
+    { "at": "S18+10", "kind": "shake", "len": 10, "amp": 8 }
+  ],
+  "sound": {
+    "clips": {
+      "swap_flip": ["a quick airy blip flip with a soft wet snap and a tiny cartoon ring ping, short", 0.6],
+      "pop": ["a cartoon speech bubble pop, short and bright", 0.5],
+      "sparkle": ["a short bright magical sparkle twinkle, cartoon", 0.8],
+      "gasp": ["two young people gasping in surprise at the same moment, cartoon, short", 0.8],
+      "cookie_crunch": ["one crunchy bite into a chocolate chip cookie, close up", 0.6],
+      "land": ["a heavy body landing flat on a wooden floor, cartoon thud", 0.6],
+      "title_boom": ["a cinematic whoosh rising into a deep boom impact", 1.6],
+      "drone_hit": ["a dark ominous low drone hit, deep cinematic horror sting", 2.6],
+      "glitch": ["a short digital glitch, an electric buzz and crackle flickering like an unstable hologram", 1.5],
+      "switch_off": ["a heavy electrical breaker switching off with a dull clunk", 0.5],
+      "counter_tick": ["a fast mechanical counter ticking up rapidly, digits rolling over, getting faster", 1.6],
+      "room_tone": ["quiet indoor room tone in the evening, faint distant city hum, no voices", 12.5],
+      "roof_wind": ["a gentle evening breeze on a city rooftop, distant traffic", 7.0],
+      "music": ["playful quirky cartoon background music, pizzicato strings, glockenspiel and soft bass, light and curious, 110 bpm, no vocals", 17.0]
+    },
+    "events": [
+      ["S1", "room_tone", 0.09, "onset", "S10"],
+      ["S1+9", "swap_flip", 0.6],
+      ["S1+11", "sparkle", 0.2],
+      ["S2+14", "cookie_crunch", 0.4],
+      ["f:80", "gasp", 0.3],
+      ["S4+7", "swap_flip", 0.4, "peak"],
+      ["S5+3", "land", 0.3],
+      ["S7+5", "swap_flip", 0.55, "peak"],
+      ["S10", "roof_wind", 0.2, "onset", "S11+26"],
+      ["S10+2", "title_boom", 0.5, "onset", "S10+30"],
+      ["S12", "room_tone", 0.08, "onset", "S18"],
+      ["S12+2", "drone_hit", 0.45, "onset", "S12+16"],
+      ["S14", "counter_tick", 0.3, "onset", "S14+55"],
+      ["S17+9", "pop", 0.45],
+      ["S17+11", "sparkle", 0.16],
+      ["S19+44", "roof_wind", 0.3]
+    ],
+    "repeats": [
+      { "at": "S13+6", "clip": "counter_tick", "n": 3, "every": 9, "gain": [0.18, 0.24], "pitch": [0.95, 1.1], "note": "each blink of the schematic eye ticks (S13 blinks at cyc 6, 15, 24)" },
+      { "at": "S18+3", "clip": "switch_off", "n": 5, "every": 7, "gain": [0.14, 0.25], "pitch": [0.8, 1.2], "note": "the world switches off in places one by one, ending before the last line" }
+    ],
+    "music": { "clip": "music", "until": "S12" },
+    "levels": { "sfx_lu": -3.0, "music_lu": -9.5 }
+  }
+}
