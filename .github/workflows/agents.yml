@@ -1,0 +1,59 @@
+# The free agents' exam on GitHub's servers: the keyword researcher and the script writer run on each free OpenCode
+# model with the same task and data, scripts grade every answer (keycheck.py, scriptcheck.py) and time it, and the
+# fact checker reads the best script. No keys: OpenCode's free tier needs none. The results table is on the run's
+# summary page; the briefs, scripts and logs are the run's artifact.
+name: agents
+
+on:
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: Seed phrases, comma-separated
+        default: ماذا لو,ستيك مان
+      region:
+        description: YouTube region (two letters)
+        default: SA
+      models:
+        description: Free models, comma-separated (":max" sets the reasoning level)
+        default: opencode/glm-5.3-flash-free,opencode/deepseek-v4.1-flash-free:max
+
+permissions:
+  contents: read
+
+jobs:
+  exam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SEEDS: ${{ inputs.seeds }}
+      REGION: ${{ inputs.region }}
+      MODELS: ${{ inputs.models }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: OpenCode
+        run: |
+          npm install -g opencode-ai@latest
+          opencode --version
+
+      - name: Run the exam
+        run: python scripts/agenttest.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work agent-test --timeout 900
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-test
+          path: |
+            agent-test/results.*
+            agent-test/research/
+            agent-test/logs/
+            agent-test/studio/src/episodes/test-*/
+          retention-days: 14

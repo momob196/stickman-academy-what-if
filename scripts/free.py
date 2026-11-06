@@ -8,9 +8,10 @@ python <skill>/scripts/free.py <agent> "<task>" [--model provider/id] [--variant
   --model    override the agent's model (opencode models | grep free lists what's free today)
   --variant  reasoning effort where the model has levels (DeepSeek V4.1 Flash Free goes up to "max")
   --file     attach images (a storyboard or frame sheet for the checkers)
-Exits 2 when OpenCode is missing or too old for the free tier (it needs 1.18.0 or newer).
+Exits 2 when OpenCode is missing or too old for the free tier (it needs 1.18.0 or newer). Runs OpenCode with its own
+data folder, <dir>/.opencode-free/, so an expired key in your OpenCode sign-ins can't block the free tier.
 """
-import re, shutil, subprocess, sys
+import os, pathlib, re, shutil, subprocess, sys
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 if len(sys.argv) < 3:
@@ -39,7 +40,12 @@ for flag in ('--model', '--variant', '--dir'):
 for f in opt('--file', many=True):
     cmd += ['--file', f]
 cmd.append(task)
-p = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
+# The free tier needs no key, and an old or expired key saved in OpenCode's own sign-ins blocks it ("This API key
+# has expired"). Run with a data folder of its own next to the project (.opencode-free/), so the free agents never
+# read or change the person's OpenCode sign-ins. MCP sign-ins for the free agents (vidIQ) live there too.
+data = pathlib.Path(opt('--dir') or '.').resolve() / '.opencode-free'
+data.mkdir(exist_ok=True)
+p = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', env={**os.environ, 'XDG_DATA_HOME': str(data)})
 text = re.sub(r'\x1b\[[0-9;]*m', '', p.stdout + ('\n' + p.stderr if p.returncode else ''))
 # OpenCode prints the tool calls it made, then the answer: keep the answer (the last block), at most 40 lines
 lines = [l for l in text.splitlines() if l.strip()]
