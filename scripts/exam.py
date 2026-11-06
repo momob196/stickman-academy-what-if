@@ -158,7 +158,8 @@ for m in models:
         res['publish'].append(r)
 
 (work / 'results.json').write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding='utf-8')
-md = ['# Free agents: measured', '', f'Seeds: {", ".join(seeds)} · region {region} · models on GitHub Models (free)', '',
+engine = 'OpenRouter (free models)' if os.environ.get('OPENROUTER_API_KEY') else (os.environ.get('LLM_BASE_URL') or 'GitHub Models')
+md = ['# Free agents: measured', '', f'Seeds: {", ".join(seeds)} · region {region} · engine: {engine}', '',
       '| Agent | Model | First try | Final | Rounds | Time | Left over |', '|---|---|---|---|---|---|---|']
 for kind, rows in (('wi-keywords', res['keywords']), ('wi-script', res['script']), ('wi-publish', res['publish'])):
     for r in rows:
@@ -169,6 +170,8 @@ if best and best.get('lines'):
 bp = max(res['publish'], key=lambda r: r['score'], default=None)
 if bp and bp.get('title'):
     md += ['', f'Best YouTube title ({bp["model"]}): {bp["title"]}']
+md += ['', '**A score of 100 means the rules were followed, not that the fact is true:** scriptcheck checks that every number is '
+       'recorded in science, not that the claim is right. Have the fact checker confirm the science before the voice is recorded.']
 (work / 'results.md').write_text('\n'.join(md), encoding='utf-8')
 if os.environ.get('GITHUB_STEP_SUMMARY'):
     with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
