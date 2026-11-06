@@ -1,7 +1,10 @@
-# The free agents' exam on GitHub's servers: the keyword researcher and the script writer run on each free OpenCode
-# model with the same task and data, scripts grade every answer (keycheck.py, scriptcheck.py) and time it, and the
-# fact checker reads the best script. No keys: OpenCode's free tier needs none. The results table is on the run's
-# summary page; the briefs, scripts and logs are the run's artifact.
+# The free agents' exam on GitHub's servers. The keyword researcher, the script writer and the publisher run on free
+# models from GitHub Models (free for every GitHub account, reached with this run's own token: no key to set up),
+# with the same task and the same live YouTube data; scripts grade every answer (keycheck, scriptcheck,
+# publishcheck), send the failures back for up to three rounds, and time it. Then the best YouTube package becomes a
+# drawn thumbnail and a dry run of the free YouTube tool. The table is on the run's summary page; every answer, check
+# and the thumbnail are the run's artifact. (OpenCode's free tier doesn't answer from GitHub's servers: it is for
+# running the agents on your own machine.)
 name: agents
 
 on:
@@ -14,79 +17,76 @@ on:
         description: YouTube region (two letters)
         default: SA
       models:
-        description: Free models, comma-separated (":max" sets the reasoning level)
-        default: opencode/glm-5.3-flash-free,opencode/deepseek-v4.1-flash-free:max
+        description: GitHub Models ids, comma-separated, or "auto" (two free models picked from the catalog)
+        default: auto
 
 permissions:
   contents: read
+  models: read
 
 jobs:
   exam:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
     env:
       SEEDS: ${{ inputs.seeds }}
       REGION: ${{ inputs.region }}
       MODELS: ${{ inputs.models }}
-      PYTHONUNBUFFERED: '1'  # show each agent's result in the log as it lands
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUNBUFFERED: '1'
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: OpenCode
+      - name: A free model answers (one minute at most)
         run: |
-          npm install -g opencode-ai@latest
-          opencode --version
-
-      - name: Free tier answers (two minutes at most)
-        run: |
-          mkdir -p "$RUNNER_TEMP/oc" && cd "$RUNNER_TEMP/oc"
-          for m in ${MODELS//,/ }; do
-            id=${m%%:*}
-            timeout 120 env XDG_DATA_HOME="$RUNNER_TEMP/oc/data" opencode run -m "$id" "Reply with exactly: OK" < /dev/null | tail -2
-          done
+          python scripts/llm.py --list | head -40
+          timeout 60 python scripts/llm.py --model "$(python -c "import sys;sys.path.insert(0,'scripts');from llm import catalog;ids=catalog();print(next((i for i in ids if 'gpt-4.1-mini' in i or 'gpt-4o-mini' in i),ids[0]))")" "Reply with exactly: OK"
 
       - name: Run the exam
-        run: python scripts/agenttest.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work agent-test --timeout 600
+        run: python scripts/exam.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work exam --rounds 3
 
       # the best YouTube package becomes a real thumbnail (drawn by the episode's own code, free) and a dry run of the
       # free YouTube tool shows exactly what it would write: nothing is sent to YouTube here
+      - uses: actions/setup-node@v4
+        if: always()
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
       - name: Thumbnail and YouTube dry run from the best package
         if: always()
         run: |
+          BEST=$(python -c "import json,re;r=json.load(open('exam/results.json',encoding='utf-8'));p=[x for x in r.get('publish',[]) if x['score']>0];print(re.sub(r'[^a-z0-9]+','-',max(p,key=lambda x:x['score'])['model'].lower()).strip('-') if p else '')")
+          if [ -z "$BEST" ]; then echo "::warning::no YouTube package scored above 0"; exit 0; fi
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-noto-core libnss3 libatk-bridge2.0-0 libgbm1 libxkbcommon0 \
             libxcomposite1 libxdamage1 libxrandr2 libpango-1.0-0 libcairo2 libcups2 libdrm2
           sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2
-          BEST=$(python -c "import json;r=json.load(open('agent-test/results.json',encoding='utf-8'));p=[x for x in r.get('publish',[]) if x['score']>0];import re;print(re.sub(r'[^a-z0-9]+','-',max(p,key=lambda x:x['score'])['model'].split('/')[-1].split(':')[0].replace('-free','')) if p else '')")
-          if [ -z "$BEST" ]; then echo "::warning::no publish package scored above 0"; exit 0; fi
           cd studio
           npm ci
           npx remotion browser ensure
           mkdir -p out/blink-swap
-          cp ../agent-test/research/publish-$BEST.json out/blink-swap/publish.json
+          cp ../exam/research/publish-$BEST.json out/blink-swap/publish.json
           npx tsc --noEmit
           node ../scripts/thumb.mjs blink-swap
           python ../scripts/youtube.py apply blink-swap --video dQw4w9WgXcQ --dry | tee out/blink-swap/youtube-dry-run.txt
-          mkdir -p ../agent-test/thumbnail && cp out/blink-swap/thumbnail.* out/blink-swap/youtube-dry-run.txt ../agent-test/thumbnail/
-          echo "Thumbnail drawn from publish-$BEST.json" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p ../exam/thumbnail && cp out/blink-swap/thumbnail.* out/blink-swap/youtube-dry-run.txt ../exam/thumbnail/
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Thumbnail drawn from publish-$BEST.json (in the artifact, exam/thumbnail/)" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: agent-test
+          name: exam
           path: |
-            agent-test/results.*
-            agent-test/research/
-            agent-test/logs/
-            agent-test/thumbnail/
-            agent-test/studio/src/episodes/test-*/
-            agent-test/studio/out/
+            exam/results.*
+            exam/research/
+            exam/thumbnail/
+            exam/studio/src/episodes/test-*/
+            exam/studio/out/
           retention-days: 14
