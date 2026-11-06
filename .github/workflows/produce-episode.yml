@@ -29,6 +29,7 @@ on:
         options:
           - codecraft
           - freemodel
+          - huggingface
           - radoxai
           - ollama-cloud
           - openrouter
@@ -52,6 +53,7 @@ jobs:
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       CODECRAFT_API_KEY: ${{ secrets.CODECRAFT_API_KEY }}
       FREEMODEL_API_KEY: ${{ secrets.FREEMODEL_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
       RADOXAI_API_KEY: ${{ secrets.RADOXAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
@@ -172,6 +174,35 @@ jobs:
           JSON
           echo "DIRECTOR_MODEL=freemodel/claude-opus-5-5" >> "$GITHUB_ENV"
           echo "WORKER_MODEL=freemodel/claude-opus-5-5" >> "$GITHUB_ENV"
+
+      - name: Configure Hugging Face Inference Providers
+        if: inputs.backend == 'huggingface'
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::Add HF_TOKEN in repository Settings > Secrets and variables > Actions. Token must allow Make calls to Inference Providers."; exit 1; }
+          mkdir -p .opencode
+          cat > .opencode/opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "huggingface": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Hugging Face Inference Providers",
+                "options": {
+                  "baseURL": "https://router.huggingface.co/v1",
+                  "apiKey": "{env:HF_TOKEN}"
+                },
+                "models": {
+                  "openai/gpt-oss-120b:fastest": {
+                    "name": "GPT OSS 120B (Hugging Face fastest provider)",
+                    "limit": { "context": 131072, "output": 16384 }
+                  }
+                }
+              }
+            }
+          }
+          JSON
+          echo "DIRECTOR_MODEL=huggingface/openai/gpt-oss-120b:fastest" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=huggingface/openai/gpt-oss-120b:fastest" >> "$GITHUB_ENV"
 
       - name: Configure RadoxAI Claude Opus 5.5
         if: inputs.backend == 'radoxai'
