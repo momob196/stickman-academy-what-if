@@ -24,9 +24,10 @@ on:
       backend:
         description: Inference provider
         required: true
-        default: radoxai
+        default: codecraft
         type: choice
         options:
+          - codecraft
           - radoxai
           - ollama-cloud
           - openrouter
@@ -48,6 +49,7 @@ jobs:
       SLUG: ${{ inputs.slug }}
       DURATION: ${{ inputs.duration }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
+      CODECRAFT_API_KEY: ${{ secrets.CODECRAFT_API_KEY }}
       RADOXAI_API_KEY: ${{ secrets.RADOXAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
@@ -110,6 +112,35 @@ jobs:
 
       - name: Install OpenCode
         run: npm install --global opencode-ai@latest
+
+      - name: Configure CodeCraft API Claude Opus 5.5
+        if: inputs.backend == 'codecraft'
+        run: |
+          test -n "$CODECRAFT_API_KEY" || { echo "::error::Add CODECRAFT_API_KEY in repository Settings > Secrets and variables > Actions"; exit 1; }
+          mkdir -p .opencode
+          cat > .opencode/opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "codecraft": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "CodeCraft API",
+                "options": {
+                  "baseURL": "https://codecraftapi.com/v1",
+                  "apiKey": "{env:CODECRAFT_API_KEY}"
+                },
+                "models": {
+                  "claude-opus-5.5": {
+                    "name": "Claude Opus 5.5",
+                    "limit": { "context": 1000000, "output": 128000 }
+                  }
+                }
+              }
+            }
+          }
+          JSON
+          echo "DIRECTOR_MODEL=codecraft/claude-opus-5.5" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=codecraft/claude-opus-5.5" >> "$GITHUB_ENV"
 
       - name: Configure RadoxAI Claude Opus 5.5
         if: inputs.backend == 'radoxai'
