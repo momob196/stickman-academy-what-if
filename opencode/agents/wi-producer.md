@@ -1,6 +1,6 @@
 ---
 description: Orchestrates the complete StickMan Academy What If production pipeline by delegating research, scriptwriting, fact-checking, shot design, storyboard and motion reviews, and mechanical rendering to the existing specialist agents.
-mode: subagent
+mode: primary
 model: opencode/glm-5.3-flash-free
 tools:
   task: true
