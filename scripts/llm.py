@@ -25,21 +25,32 @@ def _req(url, body=None, key=None, accept='application/json'):
         h['X-GitHub-Api-Version'] = '2022-11-28'
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=h, method='POST' if body is not None else 'GET')
     with urllib.request.urlopen(req, timeout=300) as r:
-        raw = r.read()
+        raw, status, final, ctype = r.read(), r.status, r.geturl(), r.headers.get('content-type', '')
     try:
         return json.loads(raw)
     except ValueError:
-        raise RuntimeError(f'{url} answered {len(raw)} bytes that are not JSON: {raw[:200]!r}')
+        moved = f', redirected to {final}' if final != url else ''
+        raise RuntimeError(f'{url} answered HTTP {status} {ctype or "no content-type"}{moved}: {len(raw)} bytes, not JSON: {raw[:120]!r}')
+
+
+# GitHub Models has two front doors: the current one, and the older Azure-hosted one (model ids without the
+# publisher prefix there). If one gives back something that isn't a model's answer, the other is tried.
+ENDPOINTS = [(f'{GH}/inference/chat/completions', lambda m: m),
+             ('https://models.inference.ai.azure.com/chat/completions', lambda m: m.split('/')[-1])]
+
+
+def _token():
+    key = os.environ.get('GITHUB_TOKEN') or os.environ.get('GH_TOKEN')
+    if not key:
+        raise SystemExit('no GITHUB_TOKEN (or LLM_BASE_URL): GitHub Models needs the token; inside Actions, set permissions: models: read')
+    return key
 
 
 def _where():
     base, key = os.environ.get('LLM_BASE_URL'), os.environ.get('LLM_API_KEY')
     if base:
-        return base.rstrip('/') + '/chat/completions', key
-    key = os.environ.get('GITHUB_TOKEN') or os.environ.get('GH_TOKEN')
-    if not key:
-        raise SystemExit('no GITHUB_TOKEN (or LLM_BASE_URL): GitHub Models needs the token; inside Actions, set permissions: models: read')
-    return f'{GH}/inference/chat/completions', key
+        return [(base.rstrip('/') + '/chat/completions', lambda m: m)], key
+    return ENDPOINTS, _token()
 
 
 # when the catalog can't be read, these well-known ids are tried instead (probe() keeps the ones that answer)
@@ -76,22 +87,28 @@ def probe(ids, want=2):
 
 
 def chat(messages, model, temperature=0.3, tries=4):
-    url, key = _where()
-    body = {'model': model, 'messages': messages, 'temperature': temperature}
-    for k in range(tries):
-        try:
-            r = _req(url, body, key)
-            return r['choices'][0]['message']['content'] or ''
-        except urllib.error.HTTPError as e:
-            msg = e.read().decode(errors='replace')[:400]
-            if e.code in (429, 500, 502, 503) and k < tries - 1:  # rate limit or a busy model: wait and try again
-                time.sleep(int(e.headers.get('retry-after') or 20 * (k + 1)))
-                continue
-            if e.code == 400 and 'temperature' in msg:  # some reasoning models take no temperature
-                body.pop('temperature', None)
-                continue
-            raise RuntimeError(f'{model}: HTTP {e.code}: {msg}')
-    raise RuntimeError(f'{model}: no answer after {tries} tries')
+    doors, key = _where()
+    errors = []
+    for url, name in doors:  # the first front door that gives a real answer wins
+        body = {'model': name(model), 'messages': messages, 'temperature': temperature}
+        for k in range(tries):
+            try:
+                r = _req(url, body, key)
+                return r['choices'][0]['message']['content'] or ''
+            except urllib.error.HTTPError as e:
+                msg = e.read().decode(errors='replace')[:300]
+                if e.code in (429, 500, 502, 503) and k < tries - 1:  # rate limit or a busy model: wait and try again
+                    time.sleep(int(e.headers.get('retry-after') or 20 * (k + 1)))
+                    continue
+                if e.code == 400 and 'temperature' in msg and 'temperature' in body:  # some reasoning models take no temperature
+                    body.pop('temperature', None)
+                    continue
+                errors.append(f'{url}: HTTP {e.code}: {msg}')
+                break
+            except (RuntimeError, KeyError, urllib.error.URLError) as e:  # not a model's answer: try the other door
+                errors.append(str(e)[:240])
+                break
+    raise RuntimeError(f'{model}: ' + ' | '.join(errors))
 
 
 if __name__ == '__main__':
