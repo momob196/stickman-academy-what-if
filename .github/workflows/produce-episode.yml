@@ -1,0 +1,176 @@
+name: produce-episode
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: Episode premise
+        required: true
+        default: "أسرار الحياة الحميمة في مصر القديمة: ماذا تكشف البرديات؟"
+        type: string
+      slug:
+        description: Lowercase episode folder name
+        required: true
+        default: pharaoh-intimacy
+        type: string
+      backend:
+        description: Model runtime
+        required: true
+        default: openrouter
+        type: choice
+        options:
+          - openrouter
+          - ollama
+      duration:
+        description: Episode length
+        required: true
+        default: short
+        type: choice
+        options:
+          - short
+          - long
+      allow_elevenlabs:
+        description: Explicitly authorize ElevenLabs voice and sound credits
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TOPIC: ${{ inputs.topic }}
+      SLUG: ${{ inputs.slug }}
+      BACKEND: ${{ inputs.backend }}
+      DURATION: ${{ inputs.duration }}
+      ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      ELEVENLABS_API_KEY: ${{ inputs.allow_elevenlabs && secrets.ELEVENLABS_API_KEY || '' }}
+      OLLAMA_HOST: http://127.0.0.1:11434
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate inputs and prepare agent workspace
+        run: |
+          [[ "$SLUG" =~ ^[a-z0-9-]+$ ]] || { echo "::error::slug must contain lowercase letters, digits and dashes only"; exit 1; }
+          test -n "$TOPIC" || { echo "::error::topic is required"; exit 1; }
+          mkdir -p .opencode/agents .opencode/commands
+          cp opencode/agents/*.md .opencode/agents/
+          cp opencode/commands/*.md .opencode/commands/
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          prompt = f"""Produce a complete StickMan Academy What If episode.
+
+          Topic: {os.environ['TOPIC']}
+          Slug: {os.environ['SLUG']}
+          Language: Arabic
+          Duration: {os.environ['DURATION']}
+          Studio directory: ./studio
+          Skill root: repository root (SKILL.md and scripts/ are here).
+
+          Coordinate the specialist agents; do not merely write a plan. Follow SKILL.md and the references. Create the episode files in studio/src/episodes/{os.environ['SLUG']}/, run the validators, create and inspect the storyboard, and save all generated review outputs under studio/out/{os.environ['SLUG']}/. Use only original StickMan Academy characters. Keep the historical treatment educational and non-explicit; no nudity or sexualised imagery. Source every historical claim and mark uncertain interpretations clearly.
+
+          ElevenLabs authorization: {os.environ['ALLOW_ELEVENLABS']}.
+          If false, do not call voice, sfx, or any paid audio service. Finish at the storyboard/validation stage and report that audio/mastering remain pending. If true, use ELEVENLABS_API_KEY only for the requested episode, report actual credits, and continue through sound, mix and master if all prerequisites are met.
+
+          Never publish or upload to YouTube. Never claim an MP4 exists unless it was actually rendered and verified. Final report must list the agents actually invoked, files created, validator results, and blockers."""
+          Path("production-prompt.txt").write_text(prompt, encoding="utf-8")
+          PY
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install render and image dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-core libnss3 libatk-bridge2.0-0 libgbm1 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libpango-1.0-0 libcairo2 libcups2 libdrm2
+          sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2
+          python -m pip install --upgrade pip numpy Pillow
+
+      - name: Install Studio dependencies
+        working-directory: studio
+        run: |
+          npm ci
+          npx remotion browser ensure
+
+      - name: Install OpenCode
+        run: npm install --global opencode-ai@latest
+
+      - name: Configure OpenRouter GLM-5.3
+        if: inputs.backend == 'openrouter'
+        run: |
+          test -n "$OPENROUTER_API_KEY" || { echo "::error::Add OPENROUTER_API_KEY in repository Actions secrets"; exit 1; }
+          echo "DIRECTOR_MODEL=openrouter/z-ai/glm-5.3" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=openrouter/z-ai/glm-5.3-flash" >> "$GITHUB_ENV"
+
+      - name: Start Ollama and pull local model
+        if: inputs.backend == 'ollama'
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          OLLAMA_KEEP_ALIVE=30m ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:11434/api/version && break
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:11434/api/version || { tail -60 "$RUNNER_TEMP/ollama.log"; exit 1; }
+          ollama pull qwen3:8b
+          echo "DIRECTOR_MODEL=ollama/qwen3:8b" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=ollama/qwen3:8b" >> "$GITHUB_ENV"
+
+      - name: Bind specialist agents to the selected backend
+        run: |
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          director = os.environ["DIRECTOR_MODEL"]
+          worker = os.environ["WORKER_MODEL"]
+          for path in Path(".opencode/agents").glob("*.md"):
+              text = path.read_text(encoding="utf-8")
+              model = director if path.stem == "wi-producer" else worker
+              updated, n = re.subn(r"(?m)^model:.*$", f"model: {model}", text, count=1)
+              if n:
+                  path.write_text(updated, encoding="utf-8")
+          PY
+          opencode agent list
+
+      - name: Run the GLM production director
+        run: |
+          opencode run --standalone --agent wi-producer --model "$DIRECTOR_MODEL" --auto "$(cat production-prompt.txt)" 2>&1 | tee production.log
+
+      - name: Verify generated episode
+        if: always()
+        run: |
+          if [ -d "studio/src/episodes/$SLUG" ]; then
+            cd studio
+            python ../scripts/scriptcheck.py "$SLUG" || true
+            npx tsc --noEmit || true
+            node ../scripts/castcheck.mjs "$SLUG" || true
+            python ../scripts/framesheet.py "$SLUG" || true
+          else
+            echo "::warning::The producer did not create studio/src/episodes/$SLUG"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: episode-${{ inputs.slug }}
+          path: |
+            production-prompt.txt
+            production.log
+            studio/src/episodes/${{ inputs.slug }}/
+            studio/out/${{ inputs.slug }}/
+          if-no-files-found: warn
+          retention-days: 14
