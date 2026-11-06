@@ -24,9 +24,10 @@ on:
       backend:
         description: Inference provider
         required: true
-        default: ollama-cloud
+        default: radoxai
         type: choice
         options:
+          - radoxai
           - ollama-cloud
           - openrouter
       allow_elevenlabs:
@@ -47,6 +48,7 @@ jobs:
       SLUG: ${{ inputs.slug }}
       DURATION: ${{ inputs.duration }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
+      RADOXAI_API_KEY: ${{ secrets.RADOXAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       BACKEND: ${{ inputs.backend }}
@@ -109,6 +111,35 @@ jobs:
       - name: Install OpenCode
         run: npm install --global opencode-ai@latest
 
+      - name: Configure RadoxAI Claude Opus 5.5
+        if: inputs.backend == 'radoxai'
+        run: |
+          test -n "$RADOXAI_API_KEY" || { echo "::error::Add RADOXAI_API_KEY in repository Settings > Secrets and variables > Actions"; exit 1; }
+          mkdir -p .opencode
+          cat > .opencode/opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "radoxai": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "RadoxAI",
+                "options": {
+                  "baseURL": "https://radoxai.com/v1",
+                  "apiKey": "{env:RADOXAI_API_KEY}"
+                },
+                "models": {
+                  "claude-opus-5.5": {
+                    "name": "Claude Opus 5.5",
+                    "limit": { "context": 1000000, "output": 128000 }
+                  }
+                }
+              }
+            }
+          }
+          JSON
+          echo "DIRECTOR_MODEL=radoxai/claude-opus-5.5" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=radoxai/claude-opus-5.5" >> "$GITHUB_ENV"
+
       - name: Configure Ollama Cloud free Gemma 4 31B
         if: inputs.backend == 'ollama-cloud'
         run: |
@@ -145,7 +176,7 @@ jobs:
           echo "DIRECTOR_MODEL=openrouter/z-ai/glm-5.3" >> "$GITHUB_ENV"
           echo "WORKER_MODEL=openrouter/z-ai/glm-5.3-flash" >> "$GITHUB_ENV"
 
-      - name: Bind specialist agents to selected GLM-5.3 provider
+      - name: Bind specialist agents to selected provider
         run: |
           python - <<'PY'
           import os, re
@@ -161,7 +192,7 @@ jobs:
           PY
           opencode agent list
 
-      - name: Run the GLM production director
+      - name: Run the production director
         run: |
           opencode run --agent wi-producer --model "$DIRECTOR_MODEL" --auto "$(cat production-prompt.txt)" 2>&1 | tee production.log
 
