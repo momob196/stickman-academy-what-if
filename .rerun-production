@@ -1,1 +1,1 @@
-Run production with FreeModel Claude Opus 5.5. Backend: freemodel. Episode: pharaoh-intimacy. ElevenLabs disabled.
+Retry Pharaoh episode on FreeModel after context-budget fixes. Backend: freemodel. Episode: pharaoh-intimacy. ElevenLabs disabled.
