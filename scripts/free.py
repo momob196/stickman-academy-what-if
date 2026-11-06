@@ -45,7 +45,8 @@ cmd.append(task)
 # read or change the person's OpenCode sign-ins. MCP sign-ins for the free agents (vidIQ) live there too.
 data = pathlib.Path(opt('--dir') or '.').resolve() / '.opencode-free'
 data.mkdir(exist_ok=True)
-p = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', env={**os.environ, 'XDG_DATA_HOME': str(data)})
+# no input: a permission prompt in a headless run fails at once instead of waiting for an answer that never comes
+p = subprocess.run(cmd, capture_output=True, stdin=subprocess.DEVNULL, text=True, encoding='utf-8', errors='replace', env={**os.environ, 'XDG_DATA_HOME': str(data)})
 text = re.sub(r'\x1b\[[0-9;]*m', '', p.stdout + ('\n' + p.stderr if p.returncode else ''))
 # OpenCode prints the tool calls it made, then the answer: keep the answer (the last block), at most 40 lines
 lines = [l for l in text.splitlines() if l.strip()]

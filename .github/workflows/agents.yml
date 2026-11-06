@@ -45,8 +45,16 @@ jobs:
           npm install -g opencode-ai@latest
           opencode --version
 
+      - name: Free tier answers (two minutes at most)
+        run: |
+          mkdir -p "$RUNNER_TEMP/oc" && cd "$RUNNER_TEMP/oc"
+          for m in ${MODELS//,/ }; do
+            id=${m%%:*}
+            timeout 120 env XDG_DATA_HOME="$RUNNER_TEMP/oc/data" opencode run -m "$id" "Reply with exactly: OK" < /dev/null | tail -2
+          done
+
       - name: Run the exam
-        run: python scripts/agenttest.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work agent-test --timeout 900
+        run: python scripts/agenttest.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work agent-test --timeout 600
 
       # the best YouTube package becomes a real thumbnail (drawn by the episode's own code, free) and a dry run of the
       # free YouTube tool shows exactly what it would write: nothing is sent to YouTube here

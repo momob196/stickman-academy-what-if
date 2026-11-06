@@ -18,7 +18,7 @@ seeds = [s.strip() for s in opt('--seeds', 'ماذا لو,ستيك مان').spli
 region = opt('--region', 'SA')
 models = [m.strip() for m in opt('--models', 'opencode/glm-5.3-flash-free,opencode/deepseek-v4.1-flash-free:max').split(',') if m.strip()]
 work = pathlib.Path(opt('--work', 'agent-test')).resolve()
-limit = int(opt('--timeout', 900))
+limit = int(opt('--timeout', 600))
 py = sys.executable
 
 
@@ -43,6 +43,7 @@ def tag(model):
 
 
 def free(agent, task, model):
+    print(f'  ... {agent} on {model} (up to {limit} s)', flush=True)
     name, _, variant = model.partition(':')
     cmd = [py, SKILL / 'scripts' / 'free.py', agent, task, '--model', name, '--dir', work]
     if variant:
@@ -56,6 +57,10 @@ shutil.rmtree(work, ignore_errors=True)
 shutil.copytree(SKILL / 'opencode' / 'agents', work / '.opencode' / 'agents')
 shutil.copytree(SKILL / 'studio' / 'src' / 'episodes', work / 'studio' / 'src' / 'episodes')
 (work / 'research').mkdir()
+# the agents read the skill's scripts and references, which sit outside this folder: a headless run can't answer
+# OpenCode's "access a file outside the project?" question, so allow it (and edits and commands) up front
+(work / 'opencode.json').write_text(json.dumps({'$schema': 'https://opencode.ai/config.json', 'permission': {
+    'edit': 'allow', 'bash': 'allow', 'webfetch': 'allow', 'external_directory': 'allow', 'doom_loop': 'allow'}}), encoding='utf-8')
 logs = work / 'logs'
 logs.mkdir()
 
