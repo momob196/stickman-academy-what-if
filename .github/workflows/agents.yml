@@ -64,7 +64,7 @@ jobs:
         if: steps.pick.outputs.engine == 'ollama'
         with:
           path: ~/.ollama/models
-          key: ollama-${{ env.OLLAMA_MODELS_LIST }}
+          key: ollama-qwen25-3b-7b-v1  # cache keys may not contain commas
 
       - name: Ollama
         if: steps.pick.outputs.engine == 'ollama'
