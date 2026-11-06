@@ -47,6 +47,19 @@ bunches with coral bands, teal; draw her at about 0.7 of Pip's scale), `mom` (a 
 man in a suit: combed hair, charcoal suit, red tie). Render the cast sheet with
 `npx remotion still src/index.ts Cast out/cast.png`.
 
+**StickMan Academy** (the channel's own cast, `ACADEMY` in poster order): `shadow` (a hooded cloak, glowing violet
+eyes: `glow`), `lina` (brown ponytail, pink scarf, pink boots: `boots`, lashes), `zed` (Dr. Zed: bald, round specs,
+lab coat), `stickman` (the hero: spiky hair, red cape and scarf, red gloves), `promax` (quiff, shades always on, gold
+armour), `timo` (green cap and backpack), `zen` (Master Zen: straw hat, beard, robe, a staff in the right hand). Robo
+is his own small rig: `<Robo x y scale t wave happy rimId />`, feet at (x, y). `Look.legs` colours the trousers apart
+from the sleeves. Light them by day with `rimId="rimSun"`. `Cast` renders this cast over the Academy; `CastPip`
+renders the Pip cast; `CastPoses` the acting poses; `AcademyScene` is the set with everyone on the ledge.
+
+The four new students (`ACADEMY_NEW`): `glitch` (neon outline, screen face), `echo` (headphones, wrist rings),
+`titan` (broad metal guard, one camera eye, coffee cup: thicker limbs, bigger hands; draw at about 1.25 scale) and
+`chronos` (copper coat, hourglass, floating hair). The companions: `<ZedHolo x y t glitch />` over Dr. Zed's head,
+`<Drone x y t fail />` at ProMax's shoulder. Who they are and how to use them in an episode: `references/cast.md`.
+
 `<Hero look pose rimId shadow />` (alias `Actor`). The **pose**:
 
 | Field | What |
@@ -95,10 +108,11 @@ idle motion carries across cuts.
 |---|---|---|
 | `Study` (`sets/study.tsx`) | `STUDY = makeRoom({980,500}, back 530-1430 x 335-740)`. `night` puts the moon in the window and turns the pendant off (the `Desk` lamp becomes the light); `shelf` (0..1) empties the bookcase, books flying from `STUDY_SHELF_V`. Window 782-1178 x 380-606 with the sun at (1085, 596); bookcase on the left wall, door and print on the right, pendant at u 0.32 w 0.42, wall light on the left. `Desk x0 x1 y` stands mid-room (the proof clip: x0 560, x1 1360, y 700, Pip behind it at hips (960, 712) scale 1). | `veil` (0.28 for a wide that must show the floor) |
 | `Stairwell` (`sets/stairwell.tsx`) | Side-on: 7 steps of 150 x 70 down to the right from a landing at y 420 (`SW`). `stepTop(x)`, `hipGround(x)`. Lit doorway upper left, arched window lower right, lantern, sconces. `Banister` is the near layer, drawn after the characters. Walk at scale 0.9. | |
-| `Classroom` (`sets/classroom.tsx`) | `CLS = makeRoom({900,470}, back 300-1500 x 130-720)`. Board 426-1054 x 196-524, windows on the left wall, two rows of desks with `Kid`s from behind. `SchoolDesk x` is the hero's desk (y 750); the proof clip's Pip stood at (1260, 760), yaw -0.35. `Kid` with `turn` and `laugh` works as a blurred foreground figure for over-the-shoulder shots. | `board` (your own chalk), `solved`, `wrong`, `laugh` |
+| `Classroom` (`sets/classroom.tsx`) | `CLS = makeRoom({900,470}, back 300-1500 x 130-720)`. Board 426-1054 x 196-524, windows on the left wall, two rows of desks with `Kid`s from behind (`kids={false}` empties the seats: the kids count toward the two-figure limit). `SchoolDesk x` is the hero's desk (y 750); the proof clip's Pip stood at (1260, 760), yaw -0.35. `Kid` with `turn` and `laugh` works as a blurred foreground figure for over-the-shoulder shots. | `board` (your own chalk), `solved`, `wrong`, `laugh` |
 | `Rooftop` (`sets/rooftop.tsx`) | Parapet at y 790, deck below (feet at about y 820). The sun at (`sunX`, `sunY`), r 170, optionally a clock (`clock`, `spin`, `crack`). City in three depths, string lights between poles at x 140 and 1780. | `red` (the turn's red sky), `lightsOut`, `blackout` (city windows go dark in a sweep from the left), `cityLit` (more lit windows: about 2.5 for a blackout), `low` (camera lower: the city and roof drop by `low`, so feet go lower too) |
 | `Kitchen` (`sets/kitchen.tsx`) | Built with the room kit: `KITCHEN = makeRoom({960,500}, back 500-1420 x 330-745, 3.4)`. Counter run along the back wall with a sink under the window (sun at 860, 530), hob and kettle, splashback, open shelves with jars, fridge on the right, wall cabinets and a wall light on the left, two pendants. Characters stand behind the island at w 0.4 (`stand(KITCHEN, u, 0.4)`), then draw `KitchenIsland` (with two bar stools) so it hides their legs; `islandTop(u, d)` is a point on its top. | `veil`, `red` |
 | `Bedroom` (`sets/bedroom.tsx`) | At night, built with the room kit: `BEDROOM = makeRoom({940,500}, back 480-1440 x 320-742, 3.4)`. Bed in the back left corner (headboard on the back wall, u 0.03-0.4, foot at w 0.47), nightstand with the lamp (`LAMP`) and the clock, `WINDOW` 1070-1330 x 374-600 onto the moon and the lit city, fairy lights and posters over the bed, `CAL` (the wall calendar), a dresser under the window, wardrobe on the right wall, door ajar on the left with the hall light, rug, beanbag, trainers. In bed: draw it with `duvet={false}`, then the character at `bedSit(u)`, then `BedDuvet` (with `knees`) over their legs. `bedTop(u, w)` is a point on the mattress. | `clock`, `lamp` (0..1: flicker it, kill it), `crossed` (the calendar), `veil` |
+| `Academy` (`sets/academy.tsx`) | StickMan Academy by day: a blue sky with drifting clouds, the academy behind in haze (a gated hall, a central tower with the stick-figure emblem, conical towers with red banners), trees and a hedge, two floating holo panels shedding pixels, and a rocky ledge in front. Feet at `ACADEMY_FLOOR` (868). Light characters with `rimSun`. | `holo` (0..1, the tech), `dusk` (0..1, warms to evening), `id` |
 | `Schematic` (`sets/schematic.tsx`) | The science beat's ground: a dark blueprint grid with registration marks. On it: `DrawOn` (a path drawing on), `Arrow`, `SchLabel` (mono, pops on), `CountUp` (a number counting, with commas), `PlantIcon` (tower, wind, solar, dam, factory; lit orange when `on`). `SCH` holds its colours. | |
 
 ## The room kit (`room.tsx`, `furnish.tsx`)

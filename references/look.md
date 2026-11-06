@@ -50,6 +50,10 @@ or any other tool.
 - Life comes from around them: a one-frame flash on an impact, focus rings, a timer, floating labels, dust, steam,
   a swaying lamp, a slow push-in.
 - One hero who never changes. Every costume is a `Look` on the one rig, so it can't drift.
+- **Two figures per frame, at most** (rig characters, Robo and set extras all count). Group scenes are cut as one-
+  and two-shots; `scripts/castcheck.mjs` counts them.
+- **Accuracy first:** the right look at the right scale, the whole head (hair, hat, hood tip) inside the frame, the
+  same name everywhere.
 
 ## On-screen text
 
@@ -79,6 +83,9 @@ again. Only a board that passes goes to animation.
 9. **Continuity.** Same costume, same set layout, same props in the same places across shots of one place.
 10. **Only the title and readouts as text,** spelled right, inside the frame.
 11. **Ours.** Nothing resembles a famous character, a channel's hero or a brand.
+12. **Two figures at most, each one right.** `castcheck.mjs` passes. In every still, each character is the look the
+    shot note names, at its cast-sheet scale, with the whole head and hair inside the frame (a cropped head fails),
+    facing and acting the way the line says. Compare against `out/cast.png` when in doubt.
 
 ## The motion check (step 6)
 

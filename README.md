@@ -1,5 +1,10 @@
 # What If animation: a free skill for Claude Code and OpenCode
 
+> **This fork** builds on [FreshStack's What If animation skill](https://github.com/kelano86/what-if-animation)
+> (MIT) with the StickMan Academy cast and daylight Academy set, a two-characters-per-shot rule checked by
+> `scripts/castcheck.mjs`, six subagents on cheaper models (`agents/`) to cut token use, a quiet runner
+> (`scripts/run.py`) and rendering on GitHub Actions (`scripts/cloud.py`, `.github/workflows/render.yml`).
+
 Type one line, "What if you could rewind 10 seconds?", and get a finished 15-25 second animated episode in the
 dusk-lit stick-figure style of the "What If" channels that took off on YouTube in October 2026.
 

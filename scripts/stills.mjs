@@ -26,21 +26,21 @@ const serveUrl = await bundle({ entryPoint: path.resolve('src/index.ts'), public
 if (framesAt >= 0) {
   const outDir = path.resolve('out', slug, 'frames');
   fs.mkdirSync(outDir, { recursive: true });
-  const composition = await selectComposition({ serveUrl, id: ep.id });
+  const composition = await selectComposition({ serveUrl, id: ep.id, timeoutInMilliseconds: 300000 });
   for (const fr of rest.map(Number)) {
     const output = path.join(outDir, `f${String(fr).padStart(4, '0')}.png`);
-    await renderStill({ serveUrl, composition, frame: fr, output, overwrite: true, scale });
+    await renderStill({ serveUrl, composition, frame: fr, output, overwrite: true, scale, timeoutInMilliseconds: 300000 });
     process.stdout.write(`${fr} `);
   }
 } else {
   const outDir = path.resolve('out', slug, 'board');
   fs.mkdirSync(outDir, { recursive: true });
-  const composition = await selectComposition({ serveUrl, id: `${ep.id}Board` });
+  const composition = await selectComposition({ serveUrl, id: `${ep.id}Board`, timeoutInMilliseconds: 300000 });
   const want = rest.length ? rest : tl.shots.map((s) => s.id);
   for (const id of want) {
     const i = tl.shots.findIndex((s) => s.id === id);
     if (i < 0) throw new Error(`No shot ${id} in the timeline`);
-    await renderStill({ serveUrl, composition, frame: i, output: path.join(outDir, `${id}.png`), overwrite: true, scale });
+    await renderStill({ serveUrl, composition, frame: i, output: path.join(outDir, `${id}.png`), overwrite: true, scale, timeoutInMilliseconds: 300000 });
     process.stdout.write(`${id} `);
   }
 }

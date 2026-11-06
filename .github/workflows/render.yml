@@ -1,0 +1,76 @@
+# Renders and masters a What If episode on GitHub's servers. Started by scripts/cloud.py (or by hand from the
+# Actions tab) with the slug of an episode pushed to cloud/<slug>/. The voice and sound were made locally, so no
+# ElevenLabs key is needed here. The result is the run's artifact: the final MP4, report.json and a frame sheet.
+name: render
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: Episode slug (a folder in cloud/)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SLUG: ${{ inputs.slug }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the slug
+        run: |
+          [[ "$SLUG" =~ ^[a-z0-9-]+$ ]] || { echo "slug must be lowercase letters, digits and dashes"; exit 1; }
+          test -d "cloud/$SLUG" || { echo "cloud/$SLUG is not in the repository"; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: System packages (ffmpeg, Arabic fonts, the browser's libraries)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-core libnss3 libatk-bridge2.0-0 libgbm1 libxkbcommon0 \
+            libxcomposite1 libxdamage1 libxrandr2 libpango-1.0-0 libcairo2 libcups2 libdrm2
+          sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2
+          pip install numpy Pillow
+
+      - name: Studio
+        working-directory: studio
+        run: |
+          npm ci
+          npx remotion browser ensure
+
+      - name: Bring in the episode
+        run: python scripts/cloud.py --stage "$SLUG"
+
+      - name: Typecheck and the two-character check
+        working-directory: studio
+        run: |
+          npx tsc --noEmit
+          node ../scripts/castcheck.mjs "$SLUG" || echo "::warning::castcheck: some shots show more than two figures"
+
+      - name: Render and master
+        working-directory: studio
+        run: |
+          python ../scripts/master.py "$SLUG"
+          python ../scripts/framesheet.py "$SLUG"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.slug }}
+          path: |
+            studio/out/${{ inputs.slug }}/${{ inputs.slug }}-final.mp4
+            studio/out/${{ inputs.slug }}/report.json
+            studio/out/${{ inputs.slug }}/frames-sheet.jpg
+          retention-days: 14

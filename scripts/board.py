@@ -7,9 +7,22 @@ Writes out/<slug>/storyboard.jpg
 """
 import json, pathlib, sys
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, features
 
 from wi import STUDIO, ep_dir, out_dir
+
+# Pillow's wheels often ship without libraqm, which leaves Arabic (and other RTL scripts) unshaped and reversed.
+# When libraqm is missing, shape + reorder Arabic before drawing. Latin text passes through untouched.
+SHAPE = not features.check('raqm')
+
+
+def ar(t):
+    """Shape Arabic text for Pillow when libraqm is absent, else return it unchanged."""
+    if not SHAPE or not t or not any('\u0600' <= c <= '\u06FF' for c in t):
+        return t
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    return get_display(arabic_reshaper.reshape(t), base_dir='R')
 
 slug = sys.argv[1]
 cols = int(sys.argv[sys.argv.index('--cols') + 1]) if '--cols' in sys.argv else 3
@@ -37,7 +50,7 @@ rows = (n + cols - 1) // cols
 sheet = Image.new('RGB', (cols * W + (cols + 1) * PAD, rows * (H + CAP + PAD) + PAD + 90), (20, 17, 26))
 d = ImageDraw.Draw(sheet)
 title = ' '.join(ep['title']) if isinstance(ep.get('title'), list) else ep.get('topic', slug)
-d.text((PAD, 26), f'{title}  ·  storyboard, one key frame per shot  ·  {tl["total"] / tl["fps"]:.1f} s', font=head, fill=(246, 239, 227))
+d.text((PAD, 26), ar(f'{title}  ·  storyboard, one key frame per shot  ·  {tl["total"] / tl["fps"]:.1f} s'), font=head, fill=(246, 239, 227))
 
 
 def fit(text, f, width):
@@ -70,13 +83,13 @@ for i, s in enumerate(tl['shots']):
     d.text((x + 18, y + H + 12), f'{i + 1}  {s["id"]}  {s["size"].upper()}', font=head, fill=(255, 177, 90))
     at = f'{s["first"] / tl["fps"]:.1f} s'
     d.text((x + W - 18 - d.textlength(at, font=note), y + H + 20), at, font=note, fill=(170, 160, 185))
-    line = f'"{s["line"]}"' if s.get('line') else '(no words)'
+    line = ar(f'"{s["line"]}"' if s.get('line') else '(no words)')
     yy = y + H + 58
     for ln in fit(line, body, W - 36):
         d.text((x + 18, yy), ln, font=body, fill=(246, 239, 227))
         yy += 34
     if s.get('note'):
-        d.text((x + 18, yy + 2), fit(s['note'], note, W - 36)[0], font=note, fill=(170, 160, 185))
+        d.text((x + 18, yy + 2), fit(ar(s['note']), note, W - 36)[0], font=note, fill=(170, 160, 185))
 out = out_dir(slug) / 'storyboard.jpg'
 sheet.save(out, quality=88)
 print(out, sheet.size)

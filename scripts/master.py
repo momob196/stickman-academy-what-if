@@ -19,11 +19,18 @@ npx = 'npx.cmd' if sys.platform == 'win32' else 'npx'
 
 if '--skip-render' not in args:
     t0 = time.time()
-    cmd = [npx, 'remotion', 'render', 'src/index.ts', ep['id'], str(raw), '--log', 'error']
+    # a longer browser timeout and up to three tries: headless Chrome sometimes misses the default 25-30 s launch
+    # window on a busy machine, and a retry is all it needs
+    cmd = [npx, 'remotion', 'render', 'src/index.ts', ep['id'], str(raw), '--log', 'error', '--timeout', '120000']
     if conc:
         cmd += ['--concurrency', conc]
     print(' '.join(cmd))
-    subprocess.run(cmd, cwd=STUDIO, check=True)
+    for attempt in range(3):
+        if subprocess.run(cmd, cwd=STUDIO).returncode == 0:
+            break
+        print(f'render failed (try {attempt + 1} of 3)')
+    else:
+        raise SystemExit('render failed three times: see the error above')
     print(f'rendered in {time.time() - t0:.0f} s')
 
 I, TP, LRA = -14.0, -1.5, 11

@@ -67,9 +67,27 @@ x = decode(raw_mp3)
 cuts = []
 
 
+def merge_mark_fragments(ws):
+    """ElevenLabs' alignment breaks Arabic words at combining marks (a mark is not a word character), so 'رَمشة'
+    returns as 'ر' + 'مشة'. A token whose punctuation is just a mark belongs to the token that follows it: fuse
+    them (word, then mark, then the rest) so cue words and pause tightening see whole words."""
+    marks = '\u0640' + '\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652\u0653\u0654\u0655\u0656\u0657\u0658\u0670'
+    out = []
+    for w in ws:
+        if out and out[-1]['p'] and all(c in marks for c in out[-1]['p']):
+            out[-1]['w'] = out[-1]['w'] + out[-1]['p'] + w['w']
+            out[-1]['e'] = w['e']
+            out[-1]['p'] = w.get('p', '')
+        else:
+            out.append(w)
+    return out
+
+
 def bare(w):
     return re.sub(r'[^\w]', '', w)
 
+
+words = merge_mark_fragments(words)
 
 for a, b in zip(words, words[1:]):
     gap = b['s'] - a['e']

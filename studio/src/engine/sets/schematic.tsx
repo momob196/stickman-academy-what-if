@@ -62,12 +62,12 @@ export const Arrow: React.FC<{ x0: number; y0: number; x1: number; y1: number; t
 };
 
 /** A label in the mono face that pops on from t = 0. */
-export const SchLabel: React.FC<{ x: number; y: number; t: number; text: string; size?: number; color?: string; anchor?: 'start' | 'middle' | 'end' }> = ({ x, y, t, text, size = 36, color = SCH.line, anchor = 'middle' }) => {
+export const SchLabel: React.FC<{ x: number; y: number; t: number; text: string; size?: number; color?: string; anchor?: 'start' | 'middle' | 'end'; font?: string }> = ({ x, y, t, text, size = 36, color = SCH.line, anchor = 'middle', font = FONT.ui }) => {
   if (t < 0) return null;
   const s = backOut(clamp(t / 6));
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
-      <text textAnchor={anchor} fontFamily={FONT.ui} fontSize={size} fill={color} letterSpacing={2}>
+      <text textAnchor={anchor} fontFamily={font} fontSize={size} fill={color} letterSpacing={font === FONT.ui ? 2 : 0}>
         {text}
       </text>
     </g>

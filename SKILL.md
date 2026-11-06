@@ -17,9 +17,12 @@ schematic for the science beat, a cliffhanger blackout). Read the one closest to
 | `references/look.md` | The measured look, pace, shot vocabulary, and the storyboard and motion checklists |
 | `references/kit.md` | The building blocks: engine, cast, sets, room kit, light, UI, looks, and how to add each |
 | `references/sound.md` | Writing sound events, prompts, levels, costs |
+| `references/cast.md` | The StickMan Academy cast: each character's colour, prop and comic role |
 | `references/traps.md` | Everything that cost time on the two example episodes |
 | `studio/` | The Remotion project: copy it once, then every episode lives in it |
-| `scripts/` | voice, plan, stills, board, sfx, mixcheck, motiongrid, master (Python 3.9+ and Node) |
+| `scripts/` | voice, plan, castcheck, stills, board, sfx, mixcheck, motiongrid, master, framesheet, run (Python 3.9+ and Node) |
+| `agents/` | Six subagents on cheaper models (runner, board check, motion check, fact check, mix fix, shots) |
+| `.github/workflows/render.yml`, `scripts/cloud.py` | Render and master an episode on GitHub's servers |
 
 ## Rules
 
@@ -34,6 +37,14 @@ schematic for the science beat, a cliffhanger blackout). Read the one closest to
   totals them in `report.json`. The voice's cost is read from the account's history (exact); sound clips don't show
   there, so their cost comes from the account counter, which can lag: re-read it before you report. Say the number
   when you hand the episode over. The copy-paste run cost 152 credits (78 for the voice, 74 for 12 new clips).
+- **Two characters per shot, at most.** No frame shows more than two figures at once: rig characters, Robo, and the
+  extras a set draws by itself (the classroom's seated kids: pass `kids={false}`) all count, even tiny, blurred or
+  half off-frame. A scene with more people is cut as a sequence of one- and two-shots. `castcheck.mjs` enforces it
+  (step 4) and nothing renders until it passes.
+- **Character accuracy before anything else.** Every character on screen is the right look from `LOOKS`, at the
+  right scale (Titan-0 about 1.25, the sister about 0.7), with the whole head, hair and hat inside the frame, the
+  right name in the script and on screen (one spelling: `references/cast.md`), and acting in their own role. A shot
+  that gets a character wrong fails, however good the rest is.
 - **Storyboard before animation.** No video render until the stills pass the self-check (step 5) and, when the person
   is in the loop, they've seen the board.
 - **Every fact is real.** A number in the script is worked out and sourced in the episode's `science` field first.
@@ -44,12 +55,45 @@ Needs Node 18+, ffmpeg and ffprobe on the PATH, Python 3.9+ with `numpy` and `Pi
 
 ```bash
 cp -r <skill>/studio ./what-if-studio && cd what-if-studio && npm install
+mkdir -p ../.claude/agents && cp <skill>/agents/*.md ../.claude/agents/
 ```
+
+The second line installs the six subagents for the project (Claude Code reads `.claude/agents/` at the start of a
+session; restart it once).
 
 Everything below runs from that studio folder; `<skill>` is this skill's folder. To work offline or in your own
 brand face, put a display font in `public/fonts/` and set `titleFont` in `src/studio.config.ts` (the default title
 face, Bricolage Grotesque, and the UI faces load from Google Fonts at render time). To update an existing studio to
 a newer engine, copy `<skill>/studio/src/engine` over its `src/engine`.
+
+## Working lean: agents and models
+
+The main conversation (the strongest model) makes the creative calls: the script, the shot design, what to fix.
+Everything mechanical or long-winded goes to a subagent on a cheaper model, which returns a few lines instead of a
+log, a folder of stills or a page of numbers. Install them once (step "Setup"), then:
+
+| Agent | Model | Use it for | Steps |
+|---|---|---|---|
+| `wi-runner` | haiku | every script run (plan, castcheck, stills, board, sfx, mixcheck, motiongrid, master, framesheet): it calls `run.py`, keeps logs out of the conversation, retries a browser that misses its launch | 2-8 |
+| `wi-fact-check` | sonnet | the science: claim vs source, the citation character by character, numbers on screen | 1, 8 |
+| `wi-board-check` | sonnet | the stills or the rendered frames against the checklist, characters first, the two-figure rule | 5, 8 |
+| `wi-motion-check` | sonnet | the motion grids | 6 |
+| `wi-mix-fix` | sonnet | mixcheck to words to events, moves hits, re-mixes (never spends credits) | 7 |
+| `wi-shots` | sonnet | one part of a long episode's shots, in its own file, in parallel with the others | 4 |
+
+Habits that save the most tokens:
+- **Never read a raw log.** Run scripts through `run.py` (or `wi-runner`): it prints 25 lines at most and keeps the
+  rest in `out/<slug>/logs/`. Read the log only when a step fails, and then only its tail.
+- **Look at sheets, not folders.** `storyboard.jpg` for stills, `frames-sheet.jpg` (`framesheet.py`) for the
+  video, one motion grid per shot. Open a single still only to confirm a suspected fault.
+- **Check before you render.** `castcheck.mjs` and `tsc` take seconds; a stills pass takes minutes and a full
+  render ten or more. Re-render only the shots you changed (`stills.mjs <slug> S3 S7`).
+- **Read only the reference a step needs** (formula.md for the script, kit.md for the shots, sound.md for the mix).
+- **Run checks in parallel.** The fact check can run while the voice is recorded; the board check while you start
+  on the sound plan. Give each agent its slug and studio path in one sentence; it knows the rest.
+- **Long episodes in parts.** Over about 12 shots: write the shared helpers in `src/episodes/<slug>/common.tsx`,
+  give each `wi-shots` agent a range of ids and its own file (`shots-a.tsx`, `shots-b.tsx`), and make `shots.tsx`
+  re-export them (`export * from './shots-a';`). Two agents never write the same file.
 
 ## The pipeline
 
@@ -104,9 +148,14 @@ and the schematic. A new character or costume: add the look, then check it on th
 
 ```bash
 npx tsc --noEmit
+node <skill>/scripts/castcheck.mjs <slug>
 node <skill>/scripts/stills.mjs <slug>
 python <skill>/scripts/board.py <slug>
 ```
+
+`castcheck.mjs` draws every shot at its start, key frame, middle and end (no browser, a second or two) and lists the
+shots with more than two figures on screen, naming who. Fix those first: split the shot, move a character out, or
+empty the set (`<Classroom kids={false} />`).
 
 `out/<slug>/storyboard.jpg`: one captioned still per shot.
 
@@ -158,11 +207,30 @@ remain (a title boom, a turn).
 
 ```bash
 python <skill>/scripts/master.py <slug>
+python <skill>/scripts/framesheet.py <slug>
 ```
+
+Or on GitHub's servers instead of this machine: `python <skill>/scripts/cloud.py <slug>` (see "Render in the cloud"
+below).
 
 Renders, brings the mix to -14 LUFS with peaks under -1 dBTP, and writes `out/<slug>/report.json` (length, loudness,
 pace, credits). Watch the final file once through with sound. Hand over `out/<slug>/<slug>-final.mp4` and
 `out/<slug>/storyboard.jpg`, with the length, the ElevenLabs credits used, and anything you'd still improve.
+
+## Render in the cloud (GitHub Actions)
+
+When this skill lives in your own GitHub repository, the render and the master can run on GitHub's machines: no
+local Chrome timeouts, and the computer stays free. From the studio folder, after the sound step:
+
+```bash
+python <skill>/scripts/cloud.py <slug>
+```
+
+It copies the episode (`src/episodes/<slug>/` and `public/<slug>/`) into the repository's `cloud/<slug>/`, commits
+and pushes it, starts the `render` workflow, waits for it, and downloads `<slug>-final.mp4`, `report.json` and the
+frame sheet into `out/<slug>/cloud/`. Needs the GitHub CLI signed in (`gh auth login`). The voice and sound are
+already made locally, so the cloud run spends no ElevenLabs credits. Engine changes travel with the repository: push
+them before rendering an episode that needs them.
 
 ## Where an episode lives
 

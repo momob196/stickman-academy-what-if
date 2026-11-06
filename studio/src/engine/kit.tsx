@@ -51,6 +51,11 @@ export const KitDefs: React.FC = () => (
       <feDropShadow dx={-4} dy={-1} stdDeviation={1.8} floodColor={N.rim} floodOpacity={1} />
       <feDropShadow dx={0} dy={0} stdDeviation={14} floodColor="#6A8CFF" floodOpacity={0.3} />
     </filter>
+    {/* daylight (the Academy): a crisp white edge and a soft contact shadow instead of a warm glow */}
+    <filter id="rimSun" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx={-3} dy={-2} stdDeviation={1.2} floodColor="#FFFFFF" floodOpacity={0.9} />
+      <feDropShadow dx={6} dy={8} stdDeviation={8} floodColor="#1A2A4A" floodOpacity={0.28} />
+    </filter>
     <radialGradient id="kitMoonBloom">
       <stop offset="0%" stopColor="#E6EEFF" stopOpacity={0.75} />
       <stop offset="30%" stopColor={N.glow} stopOpacity={0.25} />
