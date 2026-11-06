@@ -21,6 +21,14 @@ on:
         options:
           - short
           - long
+      backend:
+        description: Inference provider
+        required: true
+        default: ollama-cloud
+        type: choice
+        options:
+          - ollama-cloud
+          - openrouter
       allow_elevenlabs:
         description: Explicitly authorize ElevenLabs voice and sound credits
         required: true
@@ -40,6 +48,8 @@ jobs:
       DURATION: ${{ inputs.duration }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      BACKEND: ${{ inputs.backend }}
       ELEVENLABS_API_KEY: ${{ inputs.allow_elevenlabs && secrets.ELEVENLABS_API_KEY || '' }}
 
     steps:
@@ -99,13 +109,47 @@ jobs:
       - name: Install OpenCode
         run: npm install --global opencode-ai@latest
 
-      - name: Configure OpenRouter GLM-5.3
+      - name: Configure Ollama Cloud GLM-5.3
+        if: inputs.backend == 'ollama-cloud'
         run: |
-          test -n "$OPENROUTER_API_KEY" || { echo "::error::Add OPENROUTER_API_KEY in repository Actions secrets"; exit 1; }
+          test -n "$OLLAMA_API_KEY" || { echo "::error::Add OLLAMA_API_KEY in repository Settings > Secrets and variables > Actions"; exit 1; }
+          mkdir -p .opencode
+          cat > .opencode/opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "ollama-cloud": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Ollama Cloud",
+                "options": {
+                  "baseURL": "https://ollama.com/v1",
+                  "apiKey": "{env:OLLAMA_API_KEY}"
+                },
+                "models": {
+                  "glm-5.3": {
+                    "name": "GLM-5.3",
+                    "limit": { "context": 1000000, "output": 65536 }
+                  },
+                  "glm-5.3-flash": {
+                    "name": "GLM-5.3-Flash",
+                    "limit": { "context": 1000000, "output": 65536 }
+                  }
+                }
+              }
+            }
+          }
+          JSON
+          echo "DIRECTOR_MODEL=ollama-cloud/glm-5.3" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=ollama-cloud/glm-5.3-flash" >> "$GITHUB_ENV"
+
+      - name: Configure OpenRouter GLM-5.3
+        if: inputs.backend == 'openrouter'
+        run: |
+          test -n "$OPENROUTER_API_KEY" || { echo "::error::Add OPENROUTER_API_KEY in repository Settings > Secrets and variables > Actions"; exit 1; }
           echo "DIRECTOR_MODEL=openrouter/z-ai/glm-5.3" >> "$GITHUB_ENV"
           echo "WORKER_MODEL=openrouter/z-ai/glm-5.3-flash" >> "$GITHUB_ENV"
 
-      - name: Bind specialist agents to GLM-5.3
+      - name: Bind specialist agents to selected GLM-5.3 provider
         run: |
           python - <<'PY'
           import os, re
