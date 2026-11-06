@@ -2,6 +2,9 @@ name: produce-episode
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".rerun-production"
     inputs:
       topic:
         description: Episode premise
@@ -43,13 +46,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      TOPIC: ${{ inputs.topic }}
-      SLUG: ${{ inputs.slug }}
-      DURATION: ${{ inputs.duration }}
+      TOPIC: ${{ inputs.topic || 'أسرار الحياة الحميمة في مصر القديمة: ماذا تكشف البرديات؟' }}
+      SLUG: ${{ inputs.slug || 'pharaoh-intimacy' }}
+      DURATION: ${{ inputs.duration || 'short' }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      BACKEND: ${{ inputs.backend }}
+      BACKEND: ${{ inputs.backend || 'ollama-cloud' }}
       ELEVENLABS_API_KEY: ${{ inputs.allow_elevenlabs && secrets.ELEVENLABS_API_KEY || '' }}
 
     steps:
