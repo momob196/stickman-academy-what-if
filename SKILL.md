@@ -123,6 +123,27 @@ python <skill>/scripts/free.py wi-fact-check "check the science of what-if-studi
 Keep the creative calls (the script, the shot design, the final judgement on a check) on the strongest model you
 have; a free model's check is a first pass to confirm, not a verdict.
 
+### Research, script and publishing team (free)
+
+Three more free OpenCode agents cover the work around the episode, each graded by a script that can't be talked
+round, so a free model's output is accepted on its score, not on trust:
+
+| Agent | Does | Graded by |
+|---|---|---|
+| `wi-keywords` | live YouTube keyword data (`scripts/keywords.py`: autocomplete demand, fresh and hot result pages, crowding; free, no key), plus vidIQ volume and competition when vidIQ is connected; drops politics, real people and other people's brands; writes `research/<name>.md` (phrases, title, description, tags, premise) | `keycheck.py`: every phrase and number must be in the data file |
+| `wi-script` | the episode's script in `episode.json` from a premise and a brief, on the formula, with the cast in their roles and two characters per beat at most | `scriptcheck.py`: length, beats, spelling, two per beat, every number in `science` |
+| `wi-publish` | the YouTube package after the render: title and two alternatives, description with the fact's source, tags, 3-5 hashtags, an English thumbnail prompt (two characters at most) and its Arabic overlay text, in `out/<slug>/publish.json`, always `"privacy": "private"` | `publishcheck.py`: YouTube's limits, the source line, the hashtags; anything not private fails at once |
+
+**Upload stays with the person.** Uploading through the YouTube Data API from a Google Cloud project that hasn't
+passed Google's audit locks the video as private for good (it can't be made public later), and vidIQ's
+`vidiq_video_upload` only imports into vidIQ, not to YouTube. So the team prepares the package; the person uploads
+the MP4 in YouTube Studio as private; then, with vidIQ connected, `vidiq_update_video` can fill in the title,
+description and tags on that private video (5 credits, only after the person confirms the exact values).
+
+**The exam on GitHub.** `.github/workflows/agents.yml` (Actions tab, Run workflow) runs the three agents on each free
+model with the same task and data, grades and times every answer with the scripts above, has the fact checker read
+the best script, and puts the table on the run's summary page (`scripts/agenttest.py` does the same anywhere).
+
 ## The pipeline
 
 Work through the steps in order. Each ends on something you look at before the next.

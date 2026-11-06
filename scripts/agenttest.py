@@ -115,6 +115,38 @@ for m in models:
     results['script'].append(r)
     print(f'script {m}: {r["score"]}/100 in {secs} s')
 
+# the YouTube package for a finished episode (blink-swap, pushed to cloud/ for the cloud render): graded by
+# publishcheck.py, which fails anything that isn't private
+results['publish'] = []
+done = SKILL / 'cloud' / 'blink-swap' / 'src'
+if done.exists():
+    shutil.copytree(done, work / 'studio' / 'src' / 'episodes' / 'blink-swap', dirs_exist_ok=True)
+    PB = ('Write the YouTube package for the finished episode "blink-swap". The skill is in {skill} (that is <skill> in your '
+          'instructions); the studio is the folder "studio" here. There is no keyword brief. When it is written, run from '
+          'the studio folder: python {skill}/scripts/publishcheck.py blink-swap and fix the package until it passes.')
+    for m in models:
+        t = tag(m)
+        pdir = work / 'studio' / 'out' / 'blink-swap'
+        shutil.rmtree(pdir, ignore_errors=True)
+        pdir.mkdir(parents=True)
+        (pdir / 'report.json').write_text(json.dumps({'episode': 'BlinkSwap', 'seconds': 25.1}), encoding='utf-8')
+        out, code, secs = free('wi-publish', PB.format(skill=SKILL), m)
+        (logs / f'publish-{t}.log').write_text(out, encoding='utf-8')
+        pj = pdir / 'publish.json'
+        chk, ccode, _ = run([py, SKILL / 'scripts' / 'publishcheck.py', 'blink-swap'], cwd=work / 'studio') if pj.exists() else ('no publish.json written', 1, 0)
+        (logs / f'publishcheck-{t}.log').write_text(chk, encoding='utf-8')
+        r = {'model': m, 'seconds': secs, 'exit': code, 'score': 0 if ccode == 2 else (score(chk) if pj.exists() else 0),
+             'failures': [l[5:] for l in chk.splitlines() if l.startswith('FAIL')][:8]}
+        if pj.exists():
+            shutil.copy2(pj, work / 'research' / f'publish-{t}.json')
+            try:
+                r['title'] = json.loads(pj.read_text(encoding='utf-8')).get('title')
+            except Exception as e:
+                r['failures'].insert(0, f'publish.json does not parse: {e}')
+                r['score'] = 0
+        results['publish'].append(r)
+        print(f'publish {m}: {r["score"]}/100 in {secs} s')
+
 # the fact checker reads the best script (a second opinion on its one fact, graded by a person)
 bs = max(results['script'], key=lambda r: (r['score'], -r['seconds']))
 if bs.get('slug'):
@@ -129,7 +161,7 @@ if bs.get('slug'):
 (work / 'results.json').write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding='utf-8')
 md = ['# Free agents: measured', '', f'Seeds: {", ".join(seeds)} · region {region} · data fetched in {results["data_seconds"]} s', '',
       '| Agent | Model | Score | Time | Main failures |', '|---|---|---|---|---|']
-for kind, rows in (('wi-keywords', results['keywords']), ('wi-script', results['script'])):
+for kind, rows in (('wi-keywords', results['keywords']), ('wi-script', results['script']), ('wi-publish', results['publish'])):
     for r in rows:
         md.append(f'| {kind} | `{r["model"]}` | **{r["score"]}/100** | {r["seconds"]} s | {"; ".join(r["failures"][:3]) or "none"} |')
 md += ['', f'Premise used for the scripts: {premise}', '']

@@ -56,4 +56,5 @@ jobs:
             agent-test/research/
             agent-test/logs/
             agent-test/studio/src/episodes/test-*/
+            agent-test/studio/out/
           retention-days: 14
