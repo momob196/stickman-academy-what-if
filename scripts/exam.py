@@ -13,7 +13,7 @@ import json, os, pathlib, re, shutil, subprocess, sys, time
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 SKILL = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SKILL / 'scripts'))
-from llm import chat, catalog  # noqa: E402
+from llm import chat, catalog, probe  # noqa: E402
 
 args = sys.argv[1:]
 opt = lambda k, d: args[args.index(k) + 1] if k in args else d
@@ -29,15 +29,13 @@ def pick_models():
     if want != 'auto':
         return [m.strip() for m in want.split(',') if m.strip()]
     ids = catalog()
-    print(f'GitHub Models offers {len(ids)} models: {", ".join(ids[:40])}', flush=True)
-    chosen = []
-    for p in PREFER:
-        m = next((i for i in ids if p in i.lower() and i not in chosen and 'embed' not in i.lower()), None)
-        if m:
-            chosen.append(m)
-        if len(chosen) == 2:
-            break
-    return chosen or ids[:2]
+    print(f'{len(ids)} models to choose from: {", ".join(ids[:40])}', flush=True)
+    ranked = [i for p in PREFER for i in ids if p in i.lower() and 'embed' not in i.lower()]
+    ranked = list(dict.fromkeys(ranked + [i for i in ids if 'embed' not in i.lower()]))
+    chosen = probe(ranked)  # only models that really answer
+    if not chosen:
+        raise SystemExit('no free model answered: see the lines above')
+    return chosen
 
 
 def run(cmd, cwd=None):

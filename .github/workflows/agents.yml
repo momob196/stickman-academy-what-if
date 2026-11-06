@@ -41,10 +41,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: A free model answers (one minute at most)
-        run: |
-          python scripts/llm.py --list | head -40
-          timeout 60 python scripts/llm.py --model "$(python -c "import sys;sys.path.insert(0,'scripts');from llm import catalog;ids=catalog();print(next((i for i in ids if 'gpt-4.1-mini' in i or 'gpt-4o-mini' in i),ids[0]))")" "Reply with exactly: OK"
+      - name: Free models that answer (a few minutes at most)
+        timeout-minutes: 5
+        run: python scripts/llm.py --probe
 
       - name: Run the exam
         run: python scripts/exam.py --seeds "$SEEDS" --region "$REGION" --models "$MODELS" --work exam --rounds 3
