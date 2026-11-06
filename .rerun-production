@@ -1,9 +1,1 @@
-Retry production workflow with the default Pharaoh episode inputs.
-
-Retry after workflow syntax correction.
-
-Dispatch using workflow_dispatch API after CLI correction.
-
-Retry with Ollama Cloud free Gemma 4 31B model.
-
-Run production with RadoxAI Claude Opus 5.5 after API key setup.
+Run production with CodeCraft API Claude Opus 5.5. Backend: codecraft. Episode: pharaoh-intimacy. ElevenLabs disabled.
