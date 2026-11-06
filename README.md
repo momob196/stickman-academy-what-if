@@ -76,8 +76,9 @@ ElevenLabs credits).
    ```powershell
    mkdir what-if; cd what-if
    git clone https://github.com/kelano86/what-if-animation .claude/skills/what-if-animation
-   mkdir .opencode/commands
+   mkdir .opencode/commands, .opencode/agents
    copy .claude/skills/what-if-animation/opencode/commands/what-if.md .opencode/commands/
+   copy .claude/skills/what-if-animation/opencode/agents/*.md .opencode/agents/
    ```
 
    Mac or Linux:
@@ -85,8 +86,12 @@ ElevenLabs credits).
    ```bash
    mkdir what-if && cd what-if
    git clone https://github.com/kelano86/what-if-animation .claude/skills/what-if-animation
-   mkdir -p .opencode/commands && cp .claude/skills/what-if-animation/opencode/commands/what-if.md .opencode/commands/
+   mkdir -p .opencode/commands .opencode/agents && cp .claude/skills/what-if-animation/opencode/commands/what-if.md .opencode/commands/
+   cp .claude/skills/what-if-animation/opencode/agents/*.md .opencode/agents/
    ```
+
+   The agents run the checks and the scripts on free models (GLM-5.3-Flash Free, DeepSeek V4.1 Flash Free,
+   Nemotron 3.5 Lightning Free). The free tier needs OpenCode 1.18.0 or newer.
 
    No git? Download the ZIP from GitHub and unzip it into `.claude/skills/` (the folder's name doesn't matter), then
    copy `opencode/commands/what-if.md` from it into `.opencode/commands/`.

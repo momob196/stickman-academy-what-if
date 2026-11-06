@@ -21,7 +21,8 @@ schematic for the science beat, a cliffhanger blackout). Read the one closest to
 | `references/traps.md` | Everything that cost time on the two example episodes |
 | `studio/` | The Remotion project: copy it once, then every episode lives in it |
 | `scripts/` | voice, plan, castcheck, stills, board, sfx, mixcheck, motiongrid, master, framesheet, run (Python 3.9+ and Node) |
-| `agents/` | Six subagents on cheaper models (runner, board check, motion check, fact check, mix fix, shots) |
+| `agents/` | Seven Claude Code subagents on cheaper models (runner, board, motion, fact, mix, shots, and `wi-free`, the relay to free models) |
+| `opencode/agents/` | The same six agents for OpenCode, on its free models (GLM-5.3-Flash Free and others) |
 | `.github/workflows/render.yml`, `scripts/cloud.py` | Render and master an episode on GitHub's servers |
 
 ## Rules
@@ -56,9 +57,10 @@ Needs Node 18+, ffmpeg and ffprobe on the PATH, Python 3.9+ with `numpy` and `Pi
 ```bash
 cp -r <skill>/studio ./what-if-studio && cd what-if-studio && npm install
 mkdir -p ../.claude/agents && cp <skill>/agents/*.md ../.claude/agents/
+mkdir -p ../.opencode/agents && cp <skill>/opencode/agents/*.md ../.opencode/agents/
 ```
 
-The second line installs the six subagents for the project (Claude Code reads `.claude/agents/` at the start of a
+The second line installs the Claude Code subagents for the project, the third the free OpenCode ones (Claude Code reads `.claude/agents/` at the start of a
 session; restart it once).
 
 Everything below runs from that studio folder; `<skill>` is this skill's folder. To work offline or in your own
@@ -80,6 +82,7 @@ log, a folder of stills or a page of numbers. Install them once (step "Setup"), 
 | `wi-motion-check` | sonnet | the motion grids | 6 |
 | `wi-mix-fix` | sonnet | mixcheck to words to events, moves hits, re-mixes (never spends credits) | 7 |
 | `wi-shots` | sonnet | one part of a long episode's shots, in its own file, in parallel with the others | 4 |
+| `wi-free` | haiku | relays any of the tasks above to the same agent on a free model in OpenCode (`scripts/free.py`) | any |
 
 Habits that save the most tokens:
 - **Never read a raw log.** Run scripts through `run.py` (or `wi-runner`): it prints 25 lines at most and keeps the
@@ -94,6 +97,31 @@ Habits that save the most tokens:
 - **Long episodes in parts.** Over about 12 shots: write the shared helpers in `src/episodes/<slug>/common.tsx`,
   give each `wi-shots` agent a range of ids and its own file (`shots-a.tsx`, `shots-b.tsx`), and make `shots.tsx`
   re-export them (`export * from './shots-a';`). Two agents never write the same file.
+
+### Free agents (OpenCode)
+
+The six agents also exist for [OpenCode](https://opencode.ai) in `opencode/agents/`, on models that cost nothing
+on OpenCode's free tier (checked 6 Nov 2026 with `opencode models`; free models come and go, so check again):
+
+| Agent | Free model | Why |
+|---|---|---|
+| `wi-runner` | `opencode/nemotron-3.5-lightning-free` | fast, text only, enough to run scripts |
+| `wi-board-check`, `wi-motion-check` | `opencode/glm-5.3-flash-free` | reads images (the storyboard, frame sheets, motion grids) |
+| `wi-fact-check` | `opencode/deepseek-v4.1-flash-free` | reasoning up to `max` (`--variant max`) |
+| `wi-mix-fix`, `wi-shots` | `opencode/glm-5.3-flash-free` | tools and code, 200K context |
+
+`opencode/glm-5.3-flash` (no `-free`) is the paid version ($0.15 / $0.50 per million tokens in and out): use the
+`-free` id. The free tier needs OpenCode 1.18.0 or newer (`npm install -g opencode-ai@latest`).
+
+From Claude Code, send a task to them through `wi-free` or directly:
+
+```bash
+python <skill>/scripts/free.py wi-board-check "check out/<slug>/storyboard.jpg for the episode <slug> in ./what-if-studio" --file what-if-studio/out/<slug>/storyboard.jpg
+python <skill>/scripts/free.py wi-fact-check "check the science of what-if-studio/src/episodes/<slug>/episode.json" --variant max
+```
+
+Keep the creative calls (the script, the shot design, the final judgement on a check) on the strongest model you
+have; a free model's check is a first pass to confirm, not a verdict.
 
 ## The pipeline
 
