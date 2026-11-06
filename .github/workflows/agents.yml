@@ -28,6 +28,7 @@ jobs:
       SEEDS: ${{ inputs.seeds }}
       REGION: ${{ inputs.region }}
       MODELS: ${{ inputs.models }}
+      PYTHONUNBUFFERED: '1'  # show each agent's result in the log as it lands
     steps:
       - uses: actions/checkout@v4
 
