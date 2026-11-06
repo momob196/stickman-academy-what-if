@@ -109,7 +109,7 @@ jobs:
       - name: Install OpenCode
         run: npm install --global opencode-ai@latest
 
-      - name: Configure Ollama Cloud GLM-5.3
+      - name: Configure Ollama Cloud free Gemma 4 31B
         if: inputs.backend == 'ollama-cloud'
         run: |
           test -n "$OLLAMA_API_KEY" || { echo "::error::Add OLLAMA_API_KEY in repository Settings > Secrets and variables > Actions"; exit 1; }
@@ -126,21 +126,17 @@ jobs:
                   "apiKey": "{env:OLLAMA_API_KEY}"
                 },
                 "models": {
-                  "glm-5.3": {
-                    "name": "GLM-5.3",
-                    "limit": { "context": 1000000, "output": 65536 }
-                  },
-                  "glm-5.3-flash": {
-                    "name": "GLM-5.3-Flash",
-                    "limit": { "context": 1000000, "output": 65536 }
+                  "gemma4:31b-cloud": {
+                    "name": "Gemma 4 31B Cloud",
+                    "limit": { "context": 256000, "output": 32768 }
                   }
                 }
               }
             }
           }
           JSON
-          echo "DIRECTOR_MODEL=ollama-cloud/glm-5.3" >> "$GITHUB_ENV"
-          echo "WORKER_MODEL=ollama-cloud/glm-5.3-flash" >> "$GITHUB_ENV"
+          echo "DIRECTOR_MODEL=ollama-cloud/gemma4:31b-cloud" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=ollama-cloud/gemma4:31b-cloud" >> "$GITHUB_ENV"
 
       - name: Configure OpenRouter GLM-5.3
         if: inputs.backend == 'openrouter'
