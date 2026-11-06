@@ -34,9 +34,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    paths:
-      - ".rerun-production"
 
 permissions:
   contents: read
@@ -46,13 +43,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      TOPIC: ${{ inputs.topic || 'أسرار الحياة الحميمة في مصر القديمة: ماذا تكشف البرديات؟' }}
-      SLUG: ${{ inputs.slug || 'pharaoh-intimacy' }}
-      DURATION: ${{ inputs.duration || 'short' }}
+      TOPIC: ${{ inputs.topic }}
+      SLUG: ${{ inputs.slug }}
+      DURATION: ${{ inputs.duration }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      BACKEND: ${{ inputs.backend || 'ollama-cloud' }}
+      BACKEND: ${{ inputs.backend }}
       ELEVENLABS_API_KEY: ${{ inputs.allow_elevenlabs && secrets.ELEVENLABS_API_KEY || '' }}
 
     steps:
@@ -170,7 +167,7 @@ jobs:
 
       - name: Run the GLM production director
         run: |
-          opencode run --standalone --agent wi-producer --model "$DIRECTOR_MODEL" "$(cat production-prompt.txt)" 2>&1 | tee production.log
+          opencode run --agent wi-producer --model "$DIRECTOR_MODEL" --auto "$(cat production-prompt.txt)" 2>&1 | tee production.log
 
       - name: Verify generated episode
         if: always()
@@ -181,9 +178,9 @@ jobs:
           python ../scripts/scriptcheck.py "$SLUG"
           npx tsc --noEmit
           node ../scripts/castcheck.mjs "$SLUG"
-          python ../scripts/stills.mjs "$SLUG"
+          node ../scripts/stills.mjs "$SLUG"
           python ../scripts/board.py "$SLUG"
-          python ../scripts/framesheet.py "$SLUG"
+          test -s "out/$SLUG/storyboard.jpg" || { echo "::error::Storyboard was not created"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         if: always()
