@@ -68,6 +68,13 @@ check(len(who) >= 1, 'the thumbnail prompt describes no character from the cast'
 ov = (th.get('text_overlay') or '').split()
 check(2 <= len(ov) <= 4, f'the overlay text is {len(ov)} words (2 to 4)')
 check(bool(th.get('negative')), 'the thumbnail needs a negative prompt')
+rd = th.get('render') or {}
+CODES = {'stickman', 'shadow', 'lina', 'zed', 'promax', 'timo', 'zen', 'robo', 'glitch', 'echo', 'titan', 'chronos'}
+rc = rd.get('cast') or []
+check(1 <= len(rc) <= 2, f'thumbnail.render.cast has {len(rc)} characters (1 or 2)')
+check(all(c.get('look') in CODES for c in rc), 'thumbnail.render.cast has a look that is not a cast code')
+check(rd.get('set') in ('academy', 'classroom', 'rooftop', 'study'), 'thumbnail.render.set must be academy, classroom, rooftop or study')
+check((rd.get('text') or '').split() == (th.get('text_overlay') or '').split(), 'thumbnail.render.text must be the overlay text')
 
 for f in fails:
     print('FAIL', f)

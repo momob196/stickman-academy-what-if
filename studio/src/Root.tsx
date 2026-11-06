@@ -4,9 +4,10 @@ import './engine/fonts';
 import { STUDIO } from './studio.config';
 import { EPISODES } from './episodes';
 import { CastSheet, CastSheetPip, CastPoses, AcademyScene } from './CastSheet';
+import { Thumbnail } from './Thumbnail';
 
 // Every episode gets two compositions: <Id> (the film) and <Id>Board (one frame per shot, at its key frame, for the
-// storyboard). Cast renders the cast sheet.
+// storyboard). Cast renders the cast sheet, Thumb an episode's thumbnail.
 //   npx remotion studio src/index.ts --port 3430
 
 export const Root: React.FC = () => {
@@ -23,6 +24,8 @@ export const Root: React.FC = () => {
       <Composition id="CastPoses" component={CastPoses} durationInFrames={1} {...common} />
       <Composition id="CastPip" component={CastSheetPip} durationInFrames={1} {...common} />
       <Composition id="AcademyScene" component={AcademyScene} durationInFrames={1} {...common} />
+      {/* the YouTube thumbnail (1280 x 720), props from out/<slug>/publish.json: scripts/thumb.mjs */}
+      <Composition id="Thumb" component={Thumbnail} durationInFrames={1} fps={STUDIO.fps} width={1280} height={720} defaultProps={{}} />
     </>
   );
 };

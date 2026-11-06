@@ -83,6 +83,7 @@ log, a folder of stills or a page of numbers. Install them once (step "Setup"), 
 | `wi-mix-fix` | sonnet | mixcheck to words to events, moves hits, re-mixes (never spends credits) | 7 |
 | `wi-shots` | sonnet | one part of a long episode's shots, in its own file, in parallel with the others | 4 |
 | `wi-free` | haiku | relays any of the tasks above to the same agent on a free model in OpenCode (`scripts/free.py`) | any |
+| `wi-youtube` | haiku | puts a finished episode's package on its private YouTube video (free API), after the person confirms the values | after 8 |
 
 Habits that save the most tokens:
 - **Never read a raw log.** Run scripts through `run.py` (or `wi-runner`): it prints 25 lines at most and keeps the
@@ -134,11 +135,18 @@ round, so a free model's output is accepted on its score, not on trust:
 | `wi-script` | the episode's script in `episode.json` from a premise and a brief, on the formula, with the cast in their roles and two characters per beat at most | `scriptcheck.py`: length, beats, spelling, two per beat, every number in `science` |
 | `wi-publish` | the YouTube package after the render: title and two alternatives, description with the fact's source, tags, 3-5 hashtags, an English thumbnail prompt (two characters at most) and its Arabic overlay text, in `out/<slug>/publish.json`, always `"privacy": "private"` | `publishcheck.py`: YouTube's limits, the source line, the hashtags; anything not private fails at once |
 
-**Upload stays with the person.** Uploading through the YouTube Data API from a Google Cloud project that hasn't
-passed Google's audit locks the video as private for good (it can't be made public later), and vidIQ's
-`vidiq_video_upload` only imports into vidIQ, not to YouTube. So the team prepares the package; the person uploads
-the MP4 in YouTube Studio as private; then, with vidIQ connected, `vidiq_update_video` can fill in the title,
-description and tags on that private video (5 credits, only after the person confirms the exact values).
+**Everything free, the upload stays with the person.** Uploading through the YouTube Data API from a Google Cloud
+project that hasn't passed Google's audit locks the video as private for good (it can never be made public), so the
+person uploads the MP4 once in YouTube Studio (Create > Upload, visibility Private). Everything else is free:
+- **The thumbnail is drawn, not generated:** `node <skill>/scripts/thumb.mjs <slug>` renders the `Thumb`
+  composition from `publish.json` (`thumbnail.render`: the set, one or two of the cast, the Arabic words in Cairo) to
+  `out/<slug>/thumbnail.png` and `.jpg`, 1280 x 720. No image model, no garbled Arabic.
+- **The package goes on through the free YouTube Data API:** `scripts/youtube.py` (`auth` once, then
+  `apply <slug> --video <link> --dry`, and `--yes` once the person confirms the values) sets the title, description,
+  tags, category, language and thumbnail on the private video, refuses any video that isn't private, and leaves it
+  private. The `wi-youtube` agent runs it. Free quota: 10,000 units a day; one package costs about 100.
+- Once the Cloud project has passed the (free) API audit, `youtube.py upload <slug> --audited --yes` uploads too.
+- vidIQ is optional (its free plan's credits): research only, never needed.
 
 **The exam on GitHub.** `.github/workflows/agents.yml` (Actions tab, Run workflow) runs the three agents on each free
 model with the same task and data, grades and times every answer with the scripts above, has the fact checker read

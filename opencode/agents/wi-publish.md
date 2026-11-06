@@ -31,7 +31,13 @@ Inputs from the caller: the studio folder and the slug.
   "thumbnail": {
     "prompt": "<an English image prompt: 16:9, 1280x720, flat clean 2D cartoon, thick dark outlines, the set and its light; at most two characters, each described by their look from cast.md (colour and prop); one clear emotion; one prop from the story; leave the upper third or a side empty for text>",
     "text_overlay": "<two to four Arabic words, added later in an editor (image models garble Arabic letters)>",
-    "negative": "text, letters, watermark, logo, extra characters, realistic photo, blurry"
+    "negative": "text, letters, watermark, logo, extra characters, realistic photo, blurry",
+    "render": {
+      "set": "<academy | classroom | rooftop | study: the episode's main set>",
+      "cast": [{ "look": "<a code from cast.md: stickman, lina, zed, promax, timo, zen, robo, glitch, shadow, echo, titan, chronos>", "expr": "<shock | happy | smug | worried | oops | cool>", "pose": "<shock | cheer | point | thinking | smug>" }],
+      "text": "<the same two to four Arabic words as text_overlay>",
+      "accent": "<a hex colour from the hero's DNA, e.g. #FFE27A>"
+    }
   },
   "notes": "<anything the person must decide in YouTube Studio: made for kids, altered content, end screen>"
 }
@@ -42,7 +48,8 @@ Inputs from the caller: the studio folder and the slug.
    together at most 450 characters and each at most 30; 3 to 5 hashtags, each `#` then letters, digits or `_` (no
    spaces), also at the end of the description; nothing about real people, politics or other people's franchises;
    the thumbnail prompt is English, names or describes at most two characters, and says 16:9; the overlay is two to
-   four words.
+   four words; `render` has one or two cast entries with real look codes and the overlay as its text. The thumbnail
+   is drawn from `render` by `scripts/thumb.mjs` (the real cast, free); the prompt is only for an outside image tool.
 4. Check yourself: `python <skill>/scripts/publishcheck.py <slug>` from the studio folder. Fix every failure and run
    it again until it passes.
 
