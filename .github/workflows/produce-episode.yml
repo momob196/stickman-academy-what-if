@@ -2,9 +2,6 @@ name: produce-episode
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - ".rerun-production"
     inputs:
       topic:
         description: Episode premise
@@ -37,6 +34,9 @@ on:
         required: true
         default: false
         type: boolean
+  push:
+    paths:
+      - ".rerun-production"
 
 permissions:
   contents: read
