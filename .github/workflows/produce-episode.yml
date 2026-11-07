@@ -30,6 +30,7 @@ on:
           - codecraft
           - freemodel
           - huggingface
+          - deepseek-v4-pro
           - radoxai
           - ollama-cloud
           - openrouter
@@ -203,6 +204,35 @@ jobs:
           JSON
           echo "DIRECTOR_MODEL=huggingface/openai/gpt-oss-120b:fastest" >> "$GITHUB_ENV"
           echo "WORKER_MODEL=huggingface/openai/gpt-oss-120b:fastest" >> "$GITHUB_ENV"
+
+      - name: Configure DeepSeek V4 Pro via Hugging Face
+        if: inputs.backend == 'deepseek-v4-pro'
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::Add HF_TOKEN in repository Settings > Secrets and variables > Actions. Token must allow Make calls to Inference Providers."; exit 1; }
+          mkdir -p .opencode
+          cat > .opencode/opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "huggingface": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Hugging Face Inference Providers - DeepSeek V4 Pro",
+                "options": {
+                  "baseURL": "https://router.huggingface.co/v1",
+                  "apiKey": "{env:HF_TOKEN}"
+                },
+                "models": {
+                  "deepseek-ai/DeepSeek-V4-Pro:deepinfra": {
+                    "name": "DeepSeek V4 Pro (DeepInfra)",
+                    "limit": { "context": 1048576, "output": 32768 }
+                  }
+                }
+              }
+            }
+          }
+          JSON
+          echo "DIRECTOR_MODEL=huggingface/deepseek-ai/DeepSeek-V4-Pro:deepinfra" >> "$GITHUB_ENV"
+          echo "WORKER_MODEL=huggingface/deepseek-ai/DeepSeek-V4-Pro:deepinfra" >> "$GITHUB_ENV"
 
       - name: Configure RadoxAI Claude Opus 5.5
         if: inputs.backend == 'radoxai'
