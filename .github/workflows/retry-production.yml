@@ -25,7 +25,7 @@ jobs:
               topic: $topic,
               slug: "pharaoh-intimacy-20s",
               duration: "short",
-              target_duration_seconds: 20,
+              target_duration_seconds: "20",
               backend: "deepseek-v4-pro",
               allow_elevenlabs: false
             }
