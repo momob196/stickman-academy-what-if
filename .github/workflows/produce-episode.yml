@@ -21,6 +21,11 @@ on:
         options:
           - short
           - long
+      target_duration_seconds:
+        description: Exact target runtime in seconds
+        required: true
+        default: 20
+        type: number
       backend:
         description: Inference provider
         required: true
@@ -51,6 +56,7 @@ jobs:
       TOPIC: ${{ inputs.topic }}
       SLUG: ${{ inputs.slug }}
       DURATION: ${{ inputs.duration }}
+      TARGET_DURATION_SECONDS: ${{ inputs.target_duration_seconds }}
       ALLOW_ELEVENLABS: ${{ inputs.allow_elevenlabs }}
       CODECRAFT_API_KEY: ${{ secrets.CODECRAFT_API_KEY }}
       FREEMODEL_API_KEY: ${{ secrets.FREEMODEL_API_KEY }}
@@ -80,6 +86,7 @@ jobs:
           Slug: {os.environ['SLUG']}
           Language: Arabic
           Duration: {os.environ['DURATION']}
+          Target runtime: exactly {os.environ['TARGET_DURATION_SECONDS']} seconds. Build the timeline to total exactly this duration (at 30 fps, 600 frames for 20 seconds). Keep narration concise enough for the runtime and distribute the visual beats across the full timeline.
           Studio directory: ./studio
           Skill root: repository root (SKILL.md and scripts/ are here).
 
