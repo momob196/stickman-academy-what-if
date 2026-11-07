@@ -24,8 +24,8 @@ on:
       target_duration_seconds:
         description: Exact target runtime in seconds
         required: true
-        default: 20
-        type: number
+        default: "20"
+        type: string
       backend:
         description: Inference provider
         required: true
